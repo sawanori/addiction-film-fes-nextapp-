@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-13 / ブランチ `main` / 最新コミット `6f4fec0`
+最終更新: 2026-08-13 / ブランチ `main` / 最新コミット `e2466cc`
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -10,8 +10,9 @@
 
 ## 1. 現在地
 
-公開8ページのうち **2ページ（tickets / legal）がコンテンツ駆動化済み**。
-Turso の dev/prod DB は作成・スキーマ適用・2ドキュメントの投入まで完了。
+公開8ページのうち **task_006対象の6ページ（tickets / legal / terms / privacy / news / about）が
+コンテンツ駆動化済み**。残る index / programme（task_007）と SiteHeader/SiteFooter（task_008）は未着手。
+Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tickets/legal）の投入まで完了（terms以降は未投入）。
 認証・管理UI・Cloudflareデプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
 
 | タスク | 状態 | コミット |
@@ -22,9 +23,10 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメントの投
 | task_005/006 tickets をコンテンツ駆動化 | 完了 | `66d9cc2` |
 | task_006 legal をコンテンツ駆動化 | 完了 | `e7904ca` |
 | task_009 Turso スキーマ + seed | 完了（tickets/legal投入済み） | `6f4fec0` |
+| task_006 privacy/terms/news をコンテンツ駆動化 | 完了（kimi/codex/geminiへ並行委譲） | `e6b7908` |
+| task_006 about をコンテンツ駆動化（task_006完了） | 完了（kimiへ委譲） | `e2466cc` |
 | task_003 OpenNext / wrangler 導入 | 未着手（要 `wrangler login`） | — |
 | task_004 認証（proxy.ts + PBKDF2 + 署名Cookie） | 未着手 | — |
-| task_006 残り（privacy / terms / news / about） | 未着手 | — |
 | task_007 index / programme + 共有コンポーネント | 未着手 | — |
 | task_008 SiteHeader / SiteFooter | 未着手 | — |
 | task_010 公開ページのDB読み出し切替 | 未着手 | — |
@@ -32,6 +34,24 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメントの投
 | task_012 管理API | 未着手 | — |
 | task_013 管理画面UI | 未着手 | — |
 | task_014 本番反映 | 未着手（要 `wrangler login`） | — |
+
+### task_006完了にあたっての付記（2026-08-13追記）
+
+privacy/terms/news/about の4ページは、この回から kimi/codex/gemini への委譲方式に切り替えて
+実装した（Claudeは実装せずオーケストレーションのみ）。3ツールとも成果物の質はおおむね良好だったが、
+以下の問題が起き、いずれもマージ前に検出・修正した:
+
+- **geminiが2回とも対象外ファイルに手を出した**（`dangerouslySetInnerHTML`でXSS対策方針に反する実装、
+  `app/layout.tsx`・`components/SiteHeader.tsx`への無断変更）。また `--yolo` がこの環境ではシェルコマンド
+  実行の確認をバイパスできず、geminiの「ビルド成功」等の自己申告は検証されていない状態だった
+- **kimiのworktreeを`cleanup:true`で早期に消し、未追跡ファイル（`content/privacy.json`）の中身を
+  一度消失させた**（再委譲で復旧）。以後は「未追跡ファイルの中身をコピーしてからcleanup」の順を徹底
+- **codexのworktreeでnode_modulesシンボリックリンクの中身が消え、システム全体のディスクが
+  一時120MB空きまで逼迫した**（`rm -rf node_modules/`のトレイリングスラッシュがリンク先を空にしたとみられる）。
+  `~/Library/Caches`等の削除で復旧（約10GB回収）
+
+いずれも最終的な受け入れ判定（build/tsc/lint/verify:text）はメインリポジトリで独立して実行し、
+各ツールの自己申告に依存していない。
 
 ## 2. 検証の現状（毎コミットで確認しているもの）
 
@@ -80,12 +100,12 @@ npm run build         → 終了コード 0
 
 ## 5. 次にやること（この順で）
 
-1. `app/(public)/privacy/page.tsx` — 条文14条。構造が単純なので次に着手するのが安全
-2. `app/(public)/terms/page.tsx` — 条文18条
-3. `app/(public)/news/page.tsx` — 記事3件 + アーカイブ5件
-4. `app/(public)/about/page.tsx` — セクション数が最多
+1. ~~`app/(public)/privacy/page.tsx`~~ — 完了（`e6b7908`）
+2. ~~`app/(public)/terms/page.tsx`~~ — 完了（`e6b7908`）
+3. ~~`app/(public)/news/page.tsx`~~ — 完了（`e6b7908`）
+4. ~~`app/(public)/about/page.tsx`~~ — 完了（`e2466cc`）
 5. `app/(public)/page.tsx` + `app/(public)/programme/page.tsx` + `Films` / `Timetable` / `Hero` / `NewsletterForm`
-   （Films が index と programme をまたぐため**分割不可。1ステップでやる**）
+   （Films が index と programme をまたぐため**分割不可。1ステップでやる**）← 次はここ
 6. `SiteHeader` / `SiteFooter`（`site` ドキュメント。全ページ影響のため最後）
 
 各ページを直すたびに `npm run verify:text` を**8ルート全件**で回す。
