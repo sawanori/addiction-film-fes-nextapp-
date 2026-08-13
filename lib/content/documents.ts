@@ -1,6 +1,15 @@
 import ticketsJson from "@/content/tickets.json";
 import legalJson from "@/content/legal.json";
-import type { LegalDocument, TicketsDocument } from "@/lib/content/types";
+import termsJson from "@/content/terms.json";
+import newsJson from "@/content/news.json";
+import privacyJson from "@/content/privacy.json";
+import type {
+  LegalDocument,
+  NewsDocument,
+  PrivacyDocument,
+  TermsDocument,
+  TicketsDocument,
+} from "@/lib/content/types";
 
 /**
  * 同梱コンテンツ（正典データ）。
@@ -12,3 +21,6 @@ import type { LegalDocument, TicketsDocument } from "@/lib/content/types";
  */
 export const tickets = ticketsJson as unknown as TicketsDocument;
 export const legal = legalJson as unknown as LegalDocument;
+export const terms = termsJson as unknown as TermsDocument;
+export const news = newsJson as unknown as NewsDocument;
+export const privacy = privacyJson as unknown as PrivacyDocument;

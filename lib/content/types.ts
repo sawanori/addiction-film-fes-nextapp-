@@ -117,3 +117,149 @@ export type LegalDocument = {
   };
   footer: Inline;
 };
+
+/* ------------------------------------------------------------------ *
+ * terms ページ（利用規約・来場規約）
+ * ------------------------------------------------------------------ */
+
+export type TermsTocItem = {
+  href: string;
+  label: string;
+};
+
+export type TermsBlock =
+  | { t: "p"; value: Inline }
+  | { t: "ol"; items: string[] };
+
+export type TermsArticle = {
+  title: string;
+  blocks: TermsBlock[];
+};
+
+export type TermsChapter = {
+  id: string;
+  title: string;
+  articles: TermsArticle[];
+};
+
+export type TermsDocument = {
+  meta: PageMeta;
+  head: {
+    eyebrow: string;
+    title: Inline;
+    jp: string;
+    lead: string;
+    toc: TermsTocItem[];
+  };
+  intro: Inline;
+  chapters: TermsChapter[];
+  footer: Inline;
+};
+
+/* ------------------------------------------------------------------ *
+ * news ページ
+ * ------------------------------------------------------------------ */
+
+export type NewsLatestArticle = {
+  no: string;
+  kind: string;
+  title: string;
+  desc: string;
+  href: string;
+  delay?: string;
+  variant?: "red";
+};
+
+/** `archive` の日付。`day` に `.5em` のスタイルがつくため Inline ではなく専用の型にする。 */
+export type NewsArchiveDate = {
+  year: string;
+  day: string;
+};
+
+export type NewsArchiveItem = {
+  date: NewsArchiveDate;
+  title: string;
+  desc: string;
+  meta: string;
+  href: string;
+  delay?: string;
+};
+
+export type NewsPressButton = {
+  label: string;
+  href: string;
+  variant: "light" | "red";
+};
+
+export type NewsDocument = {
+  meta: PageMeta;
+  head: {
+    eyebrow: string;
+    title: string;
+    jp: string;
+    lead: string;
+  };
+  latest: {
+    articles: NewsLatestArticle[];
+  };
+  archive: {
+    head: SectionHead;
+    items: NewsArchiveItem[];
+    note: string;
+  };
+  press: {
+    eyebrow: string;
+    title: Inline;
+    lead: Inline;
+    body: string;
+    buttons: NewsPressButton[];
+    gridDelay: string;
+  };
+};
+
+/* ------------------------------------------------------------------ *
+ * privacy ページ（プライバシーポリシー）
+ * ------------------------------------------------------------------ */
+
+/** ページ頭の目次（`.doc__tocs`）の1項目。ページ内アンカーへのリンク。 */
+export type PrivacyTocItem = {
+  href: string;
+  label: string;
+};
+
+/** 条文テーブル（`.table`）の1行。現行の2表はいずれも素の文字列のみ。 */
+export type PrivacyTableRow = {
+  label: string;
+  value: string;
+};
+
+/**
+ * 条文本文の1ブロック。段落・箇条書き・表の3種。
+ * 段落は <strong> を含むものと `<p class="small muted">` の注記があるため
+ * Inline と `cls` で表す。箇条書きと表の中身は現行すべて素の文字列。
+ */
+export type PrivacyBlock =
+  | { kind: "p"; text: Inline; cls?: string }
+  | { kind: "ol"; items: string[] }
+  | { kind: "table"; rows: PrivacyTableRow[] };
+
+/** 条文の1節（`<h2 id="sN">` とその本文）。 */
+export type PrivacySection = {
+  id: string;
+  heading: string;
+  blocks: PrivacyBlock[];
+};
+
+export type PrivacyDocument = {
+  meta: PageMeta;
+  head: {
+    eyebrow: string;
+    title: string;
+    jp: string;
+    lead: string;
+  };
+  tocs: PrivacyTocItem[];
+  intro: Inline;
+  sections: PrivacySection[];
+  footer: Inline;
+};
