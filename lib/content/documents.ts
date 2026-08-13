@@ -4,13 +4,21 @@ import termsJson from "@/content/terms.json";
 import newsJson from "@/content/news.json";
 import privacyJson from "@/content/privacy.json";
 import aboutJson from "@/content/about.json";
+import indexJson from "@/content/index.json";
+import programmeJson from "@/content/programme.json";
+import filmsJson from "@/content/films.json";
+import timetableJson from "@/content/timetable.json";
 import type {
   AboutDocument,
+  FilmsDocument,
+  IndexDocument,
   LegalDocument,
   NewsDocument,
   PrivacyDocument,
+  ProgrammeDocument,
   TermsDocument,
   TicketsDocument,
+  TimetableDocument,
 } from "@/lib/content/types";
 
 /**
@@ -27,3 +35,7 @@ export const terms = termsJson as unknown as TermsDocument;
 export const news = newsJson as unknown as NewsDocument;
 export const privacy = privacyJson as unknown as PrivacyDocument;
 export const about = aboutJson as unknown as AboutDocument;
+export const index = indexJson as unknown as IndexDocument;
+export const programme = programmeJson as unknown as ProgrammeDocument;
+export const films = filmsJson as unknown as FilmsDocument;
+export const timetable = timetableJson as unknown as TimetableDocument;

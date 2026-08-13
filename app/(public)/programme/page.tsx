@@ -3,26 +3,29 @@ import Films from "@/components/Films";
 import Timetable from "@/components/Timetable";
 import SmartLink from "@/components/SmartLink";
 import { styleVars } from "@/lib/style";
+import {
+  films as filmsDoc,
+  programme,
+  timetable as timetableDoc,
+} from "@/lib/content/documents";
+import { renderInline } from "@/lib/content/inline";
 
 export const metadata: Metadata = {
-  title: "Programme｜アディクション国際映画祭",
-  description:
-    "アディクション国際映画祭〔企画中〕のプログラム。全作品トークショー付きの上映構成、2日間のタイムテーブル、会場について。",
+  title: programme.meta.title,
+  description: programme.meta.description,
 };
 
 export default function ProgrammePage() {
+  const { head, films: filmsSection, guide, timetable, venue, cta } = programme;
+
   return (
     <>
       <section className="page-head">
         <div className="wrap">
-          <span className="eyebrow">Programme</span>
-          <h1 className="display">
-            1 Film,
-            <br />
-            1 Talk
-          </h1>
-          <p className="page-head__jp">映画1本ごとに、トークショーを。</p>
-          <p className="page-head__lead lead">上映して終わりにはしません。1本ごとに、その場でトークショーを併催します。作品の感想から始まり、いつのまにか依存症の話になっている。その流れを2日間くり返します。</p>
+          <span className="eyebrow">{head.eyebrow}</span>
+          <h1 className="display">{renderInline(head.title)}</h1>
+          <p className="page-head__jp">{head.jp}</p>
+          <p className="page-head__lead lead">{head.lead}</p>
         </div>
       </section>
 
@@ -31,16 +34,16 @@ export default function ProgrammePage() {
         <div className="wrap">
           <div className="section__head">
             <div>
-              <span className="eyebrow">Line-up</span>
-              <h2 className="display">Films</h2>
-              <p className="jp-head">上映作品</p>
+              <span className="eyebrow">{filmsSection.head.eyebrow}</span>
+              <h2 className="display">{filmsSection.head.title}</h2>
+              <p className="jp-head">{filmsSection.head.jp}</p>
             </div>
-            <SmartLink className="arrow" href="/tickets">
-              チケットを見る
+            <SmartLink className="arrow" href={filmsSection.link.href}>
+              {filmsSection.link.label}
             </SmartLink>
           </div>
 
-          <Films variant="programme" />
+          <Films variant="programme" content={filmsDoc} />
         </div>
       </section>
 
@@ -48,70 +51,23 @@ export default function ProgrammePage() {
       <section className="section">
         <div className="wrap">
           <div className="rows">
-            <div className="row-item rise">
-              <span className="row-item__no">01</span>
-              <div>
-                <p className="row-item__t">上映作品<span className="small muted">／Films</span></p>
-                <p className="row-item__d">映画ファンを唸らせる、国内外の受賞作や芸術性の高いエッジの効いた作品をラインナップします。啓発用に作られた映像ではなく、映画館で観るために作られた映画を選びます。長編2本・中編1本・短編3本の全6作品が決定しました。</p>
+            {guide.rows.map((row) => (
+              <div
+                key={row.no}
+                className="row-item rise"
+                {...(row.delay
+                  ? { style: styleVars({ "--d": row.delay }) }
+                  : {})}
+                {...(row.id ? { id: row.id } : {})}
+              >
+                <span className="row-item__no">{row.no}</span>
+                <div>
+                  <p className="row-item__t">{renderInline(row.title)}</p>
+                  <p className="row-item__d">{row.desc}</p>
+                </div>
+                <p className="row-item__meta">{renderInline(row.meta)}</p>
               </div>
-              <p className="row-item__meta">
-                全6作品／2日間
-                <br />
-                <a className="arrow" href="#films">
-                  作品一覧
-                </a>
-              </p>
-            </div>
-            <div
-              className="row-item rise"
-              style={styleVars({ "--d": ".06s" })}
-              id="talk"
-            >
-              <span className="row-item__no">02</span>
-              <div>
-                <p className="row-item__t">トークショー<span className="small muted">／Talk Show</span></p>
-                <p className="row-item__d">上映後、同じホールでそのままトークへ。啓発っぽさを排除し、作品の感想戦の延長で語られるカジュアルで深いクロストークになるよう、ゲストを厳選します。依存症から回復した著名人にも登壇いただく予定です。</p>
-              </div>
-              <p className="row-item__meta">
-                会期中 全4回
-                <br />
-                ほか特別講演・質疑応答
-              </p>
-            </div>
-            <div
-              className="row-item rise"
-              style={styleVars({ "--d": ".12s" })}
-              id="navigator"
-            >
-              <span className="row-item__no">03</span>
-              <div>
-                <p className="row-item__t">フェスティバル・ナビゲーター</p>
-                <p className="row-item__d">2日間を通した進行役は、映画ライター・編集者のよしひろまさみち氏。作品の見どころを伝え、トークの入口をつくる役割です。上映とトークをぶつ切りにせず、1本の流れとして届けます。</p>
-              </div>
-              <p className="row-item__meta">
-                よしひろまさみち
-                <br />
-                <SmartLink className="arrow" href="/#navigator">
-                  プロフィール
-                </SmartLink>
-              </p>
-            </div>
-            <div
-              className="row-item rise"
-              style={styleVars({ "--d": ".18s" })}
-              id="novelty-link"
-            >
-              <span className="row-item__no">04</span>
-              <div>
-                <p className="row-item__t">啓発ノベルティ<span className="small muted">／Novelty</span></p>
-                <p className="row-item__d">プレミア感とデザイン性にこだわった啓発グッズを来場者に配布します。会場を出たあとも手元に残るものを想定しています。</p>
-              </div>
-              <p className="row-item__meta">
-                <SmartLink className="arrow" href="/tickets#novelty">
-                  くわしく
-                </SmartLink>
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -123,21 +79,21 @@ export default function ProgrammePage() {
           <div className="section__head">
             <div>
               <span className="eyebrow" style={{ color: "var(--red)" }}>
-                2 Days
+                {timetable.eyebrow}
               </span>
               <h2
                 className="display display--sm"
                 style={{ color: "var(--white)" }}
               >
-                Timetable
+                {timetable.title}
               </h2>
               <p className="jp-head" style={{ color: "var(--red)" }}>
-                2日間のタイムスケジュール
+                {timetable.jp}
               </p>
             </div>
           </div>
-          <Timetable />
-          <p className="small muted" style={{ marginTop: "16px" }}>※ タイムスケジュールは案です。開始時刻は変更になる場合があります。登壇者は決まりしだい発表します。</p>
+          <Timetable content={timetableDoc} />
+          <p className="small muted" style={{ marginTop: "16px" }}>{timetable.note}</p>
         </div>
       </section>
 
@@ -146,29 +102,36 @@ export default function ProgrammePage() {
         <div className="wrap">
           <div className="section__head">
             <div>
-              <span className="eyebrow">Venue</span>
-              <h2 className="display display--sm">Venue</h2>
-              <p className="jp-head">会場</p>
+              <span className="eyebrow">{venue.head.eyebrow}</span>
+              <h2 className="display display--sm">{venue.head.title}</h2>
+              <p className="jp-head">{venue.head.jp}</p>
             </div>
-            <SmartLink className="arrow" href="/tickets">
-              チケットを見る
+            <SmartLink className="arrow" href={venue.link.href}>
+              {venue.link.label}
             </SmartLink>
           </div>
 
           <div className="cols-2">
-            <div className="box box--dark rise">
-              <h3>よみうりホール（東京・有楽町）</h3>
-              <p>2日間を通して、会場は1か所です。分散させず、同じ空間に人が集まりつづける構成にします。上映もトークも同じホールで行うため、席を立たずにそのまま話を聴くことができます。</p>
-              <p style={{ marginTop: "14px" }}>アクセス・座席図・バリアフリー情報は、確定しだい掲載します。</p>
-            </div>
-            <div
-              className="box rise"
-              style={styleVars({ "--d": ".08s" })}
-            >
-              <h3>会場でできること〔想定〕</h3>
-              <p>・ノベルティの受け取り<br />・支援団体・相談窓口のご案内ブース<br />・書籍や資料の展示<br />・トーク登壇者との交流スペース</p>
-              <p style={{ marginTop: "14px" }} className="small muted">※ 企画書に記載のない想定です。実施の可否は今後の検討によります。</p>
-            </div>
+            {venue.boxes.map((box) => (
+              <div
+                key={box.h}
+                className={
+                  box.variant === "dark" ? "box box--dark rise" : "box rise"
+                }
+                {...(box.delay
+                  ? { style: styleVars({ "--d": box.delay }) }
+                  : {})}
+              >
+                <h3>{box.h}</h3>
+                <p>{renderInline(box.p)}</p>
+                <p
+                  style={{ marginTop: "14px" }}
+                  {...(box.p2Cls ? { className: box.p2Cls } : {})}
+                >
+                  {box.p2}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -176,9 +139,9 @@ export default function ProgrammePage() {
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <div className="cta-bar rise">
-            <p className="cta-bar__t">上映作品とトークゲストは、決まりしだい発表します。</p>
-            <SmartLink className="arrow" href="/news">
-              お知らせを見る
+            <p className="cta-bar__t">{cta.t}</p>
+            <SmartLink className="arrow" href={cta.link.href}>
+              {cta.link.label}
             </SmartLink>
           </div>
         </div>

@@ -2,29 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import SmartLink from "@/components/SmartLink";
-
-const SLIDES = [
-  {
-    src: "/assets/films/hero-01-secret-sea.jpg",
-    alt: "『嘘つきは〇○のはじまり』より、海を望む階段に立つ二人",
-    lazy: false,
-  },
-  {
-    src: "/assets/films/hero-01-paradise.jpg",
-    alt: "『一瞬の楽園』より、夜の歩道橋を歩く二人",
-    lazy: true,
-  },
-  {
-    src: "/assets/films/hero-03-binetsu.jpg",
-    alt: "『微熱』より、遊技台の光に照らされる男",
-    lazy: true,
-  },
-  {
-    src: "/assets/films/hero-04-billw.jpg",
-    alt: "『Bill W.』より、ステッピング・ストーンズを歩く二人",
-    lazy: true,
-  },
-];
+import type { IndexHero } from "@/lib/content/types";
 
 const INTERVAL = 6000;
 
@@ -33,15 +11,22 @@ const INTERVAL = 6000;
  * 6000ms ごとに巡回し、#heroNav の .hero__dot と連動する。
  * prefers-reduced-motion: reduce では自動送りしない。
  * タブが非表示のあいだは停止する。
+ *
+ * スライドの画像パス・alt・aria-label と静的テキストは props（content/index.json の hero）
+ * から受け取る。制御ロジックは変換元から変更していない。
  */
-export default function Hero() {
+export default function Hero({ content }: { content: IndexHero }) {
   const [index, setIndex] = useState(0);
+  // モジュール定数だった SLIDES の props 化。effect の deps（[]）を変えずに
+  // 枚数を参照するため、マウント時の値を ref に保持する（スライドは静的データ）。
+  const slidesRef = useRef(content.slides);
   const handlersRef = useRef<{
     show: (next: number) => void;
     start: () => void;
   } | null>(null);
 
   useEffect(() => {
+    const slides = slidesRef.current;
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
@@ -49,7 +34,7 @@ export default function Hero() {
     let timer = 0;
 
     const show = (next: number) => {
-      current = ((next % SLIDES.length) + SLIDES.length) % SLIDES.length;
+      current = ((next % slides.length) + slides.length) % slides.length;
       setIndex(current);
     };
     const stop = () => {
@@ -90,20 +75,18 @@ export default function Hero() {
     <section className="hero">
       {/*
         キービジュアルのスライドショー。
-        写真が用意できたら、各 .hero__slide の <img src> を .jpg に差し替えるだけで入れ替わる
-        （推奨サイズ 2000×1125 前後・16:9）。スライドは増減自由。増やす場合は
-        .hero__slide をコピーし、下の .hero__nav にも同じ数だけ .hero__dot を追加する。
+        写真が用意できたら content/index.json の hero.slides の src を差し替えるだけで入れ替わる
+        （推奨サイズ 2000×1125 前後・16:9）。スライドは増減自由（ドットも連動する）。
         写真に切り替えたあと世界観を揃えたい場合は、下の div に is-duotone を足すと
         朱赤のデュオトーンになる（例: className="hero__slides is-duotone"）。
-        （React 版では SLIDES 配列を増減するだけでドットも連動する）
       */}
       <div
         className="hero__slides"
         id="heroSlides"
         role="group"
-        aria-label="キービジュアル"
+        aria-label={content.slidesLabel}
       >
-        {SLIDES.map((slide, i) => (
+        {content.slides.map((slide, i) => (
           <div
             key={slide.src}
             className={
@@ -123,53 +106,46 @@ export default function Hero() {
 
       <div className="wrap hero__inner">
         <div className="hero__edition">
-          <span className="eyebrow">1st Edition</span>
-          <span className="eyebrow">All Films with Talk Show</span>
+          <span className="eyebrow">{content.edition[0]}</span>
+          <span className="eyebrow">{content.edition[1]}</span>
         </div>
 
         <h1 className="display display--xl hero__title">
-          <span>Turn Bias</span>
-          <span>into Dialogue</span>
+          <span>{content.titleLines[0]}</span>
+          <span>{content.titleLines[1]}</span>
         </h1>
-        <p className="hero__jp">映画の力で、偏見を対話に変える。</p>
+        <p className="hero__jp">{content.jp}</p>
 
         <dl className="hero__meta">
-          <div>
-            <dt>Dates</dt>
-            <dd>2026年10月11日（日）— 12日（月・祝）</dd>
-          </div>
-          <div>
-            <dt>Venue</dt>
-            <dd>よみうりホール（東京・有楽町）</dd>
-          </div>
-          <div>
-            <dt>Format</dt>
-            <dd>全作品にトークショーを併催</dd>
-          </div>
-          <div>
-            <dt>Tickets</dt>
-            <dd>1日券 3,000円／2日券 5,000円</dd>
-          </div>
+          {content.meta.map((item) => (
+            <div key={item.term}>
+              <dt>{item.term}</dt>
+              <dd>{item.desc}</dd>
+            </div>
+          ))}
         </dl>
 
         <div className="hero__actions">
-          <SmartLink className="btn" href="/programme">
-            上映とトークを見る
-          </SmartLink>
-          <SmartLink className="btn btn--light" href="/tickets">
-            チケット情報
-          </SmartLink>
+          {content.actions.map((action) => (
+            <SmartLink
+              key={action.href}
+              className={action.variant === "light" ? "btn btn--light" : "btn"}
+              href={action.href}
+            >
+              {action.label}
+            </SmartLink>
+          ))}
         </div>
 
         <div className="hero__nav" id="heroNav">
-          {SLIDES.map((slide, i) => (
+          {content.slides.map((slide, i) => (
             <button
               key={slide.src}
               className={
                 i === index ? "hero__dot is-active" : "hero__dot"
               }
               type="button"
-              aria-label={`キービジュアル ${i + 1}枚目を表示`}
+              aria-label={slide.dotLabel}
               onClick={() => onDotClick(i)}
             ></button>
           ))}

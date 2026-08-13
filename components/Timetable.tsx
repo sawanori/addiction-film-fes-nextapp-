@@ -1,108 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
-
-type TimetableRow = {
-  time: string;
-  program: ReactNode;
-};
-
-type TimetableDay = {
-  d: string;
-  j: string;
-  rows: TimetableRow[];
-};
-
-/**
- * 日付・見出し・その日の行データをここにまとめ、
- * タブとシートの両方をこの配列から生成する
- * （変換元 script.js がシート枚数を DOM から数えていたのと同じく、
- *   日を増減するときはこの配列だけを触ればよい設計）。
- */
-const DAYS: TimetableDay[] = [
-  {
-    d: "DAY 1",
-    j: "10月11日（日）",
-    rows: [
-      { time: "13:00", program: "受付開始" },
-      { time: "13:30", program: "オープニングセレモニー" },
-      {
-        time: "14:45",
-        program: (
-          <>
-            <strong>Bill W.</strong>（104分）
-          </>
-        ),
-      },
-      { time: "16:30", program: "トークショー ①" },
-      {
-        time: "18:00",
-        program: (
-          <>
-            <strong>微熱</strong>（30分）
-          </>
-        ),
-      },
-      {
-        time: "18:30",
-        program: (
-          <>
-            <strong>一瞬の楽園</strong>（30分）
-          </>
-        ),
-      },
-      { time: "19:00", program: "トークショー ②／会場とのセッション" },
-    ],
-  },
-  {
-    d: "DAY 2",
-    j: "10月12日（月・祝）",
-    rows: [
-      {
-        time: "10:00",
-        program: (
-          <>
-            <strong>アディクトを待ちながら</strong>（82分）
-          </>
-        ),
-      },
-      { time: "11:30", program: "トークショー ③" },
-      { time: "12:15", program: "休憩" },
-      {
-        time: "13:30",
-        program: (
-          <>
-            <strong>嘘つきは〇○のはじまり</strong>（30分）
-          </>
-        ),
-      },
-      { time: "14:00", program: "トークショー ④" },
-      {
-        time: "15:00",
-        program: (
-          <>
-            <strong>Bill W. Conscious Contact</strong>（58分）
-          </>
-        ),
-      },
-      { time: "16:15", program: "特別講演" },
-      { time: "17:30", program: "質疑応答" },
-      { time: "18:30", program: "クロージングセレモニー" },
-    ],
-  },
-];
-
-const ARROWS = [
-  { dir: -1, label: "前の日を見る", glyph: "←" },
-  { dir: 1, label: "次の日を見る", glyph: "→" },
-];
+import { renderInline } from "@/lib/content/inline";
+import type { TimetableDocument } from "@/lib/content/types";
 
 /**
  * タイムテーブルの日付スライド（script.js の3つ目の IIFE に相当）。
  * スワイプ自体は CSS のスクロールスナップが担当し、ここはタブ・矢印との同期だけを見る。
+ *
+ * 日付・見出し・その日の行データは content/timetable.json の days 配列1つにまとめ、
+ * タブとシートの両方をその配列から生成する
+ * （変換元 script.js がシート枚数を DOM から数えていたのと同じく、
+ *   日を増減するときは days だけを触ればよい設計）。
  */
-export default function Timetable() {
+export default function Timetable({ content }: { content: TimetableDocument }) {
+  const days = content.days;
   const [current, setCurrent] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef(0);
@@ -110,7 +22,7 @@ export default function Timetable() {
   const tickingRef = useRef(false);
   const rafRef = useRef<number | null>(null);
 
-  const clamp = (i: number) => Math.max(0, Math.min(DAYS.length - 1, i));
+  const clamp = (i: number) => Math.max(0, Math.min(days.length - 1, i));
 
   const isReduced = () => {
     if (reducedRef.current === null) {
@@ -183,7 +95,7 @@ export default function Timetable() {
   return (
     <div className="timetable rise">
       <div className="timetable__tabs">
-        {DAYS.map((day, i) => (
+        {days.map((day, i) => (
           <button
             key={day.d}
             className={
@@ -204,12 +116,12 @@ export default function Timetable() {
         id="timetableTrack"
         tabIndex={0}
         role="group"
-        aria-label="タイムテーブル。左右にスワイプすると日が切り替わります"
+        aria-label={content.trackLabel}
         ref={trackRef}
         onKeyDown={onTrackKeyDown}
         onScroll={onTrackScroll}
       >
-        {DAYS.map((day) => (
+        {days.map((day) => (
           <div className="timetable__sheet" key={day.d}>
             <div className="timetable__sheet-head">
               <span className="timetable__day">{day.d}</span>
@@ -218,8 +130,8 @@ export default function Timetable() {
             <table className="table table--dark">
               <thead>
                 <tr>
-                  <th>時間</th>
-                  <th>プログラム</th>
+                  <th>{content.columns[0]}</th>
+                  <th>{content.columns[1]}</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,7 +140,7 @@ export default function Timetable() {
                     <td>
                       <strong>{row.time}</strong>
                     </td>
-                    <td>{row.program}</td>
+                    <td>{renderInline(row.program)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -238,8 +150,8 @@ export default function Timetable() {
       </div>
 
       <div className="timetable__nav">
-        <span className="timetable__hint">横にスワイプ / Swipe</span>
-        {ARROWS.map((arrow) => (
+        <span className="timetable__hint">{content.hint}</span>
+        {content.arrows.map((arrow) => (
           <button
             key={arrow.dir}
             className="timetable__arrow"
