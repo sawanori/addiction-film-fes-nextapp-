@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import SiteHeader from "@/components/SiteHeader";
-import SiteFooter from "@/components/SiteFooter";
-import ScrollReveal from "@/components/ScrollReveal";
 
+/**
+ * 全ルート共通の最小の殻。
+ *
+ * ヘッダー・フッター・スクロール演出は `app/(public)/layout.tsx` にある。
+ * ここに置くと `/admin` にも適用されてしまうため、公開面だけの関心事は
+ * Route Group 側に寄せている。ここに残すのは、管理画面にも等しく必要な
+ * `<html lang>` と、変換元と一致させる必要がある `<head>` の中身だけ。
+ */
 export const metadata: Metadata = {
   // 変換元の全ページ共通 <meta name="robots" content="noindex, nofollow, noarchive">
   robots: { index: false, follow: false, noarchive: true },
@@ -25,12 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           rel="stylesheet"
         />
       </head>
-      <body>
-        <SiteHeader />
-        {children}
-        <SiteFooter />
-        <ScrollReveal />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
