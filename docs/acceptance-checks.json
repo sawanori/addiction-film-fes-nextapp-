@@ -150,10 +150,10 @@
     {
       "id": "check_019",
       "target": "ビルド・型・lint",
-      "rule": "既存の検証コマンドがすべて通ること",
-      "expected_result": "npm run build / npx tsc --noEmit / npm run lint がすべて終了コード0",
+      "rule": "ビルドと型チェックが通り、lint の指摘が着手前から増えていないこと",
+      "expected_result": "npm run build と npx tsc --noEmit が終了コード0。npm run lint は既存の 2 errors / 4 warnings のまま（いずれも components/SiteHeader.tsx と <img>/フォントに関する既知のもので、着手前から存在する）",
       "manual_or_automated": "automated",
-      "verification_method": "3コマンドを順に実行"
+      "verification_method": "3コマンドを順に実行し、lint は問題件数を着手前の実測値と比較する。lint が終了コード0にならないのは既知（docs/implementation-plan.md §14-1 参照）"
     },
     {
       "id": "check_020",

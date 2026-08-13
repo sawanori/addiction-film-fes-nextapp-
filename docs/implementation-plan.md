@@ -691,7 +691,16 @@ v2 では次のとおり定義する:
 比較対象に含めないもの: SSR HTML のバイト一致、`/_next/static/chunks/` のハッシュ、
 `force-dynamic` 化によって失われる Next 自動生成の画像 preload 1 本（§7.2 で実測・変換元にも存在しない）。
 
-1. `npm run build`、`npx tsc --noEmit`、`npm run lint` がすべて終了コード 0。
+1. `npm run build` と `npx tsc --noEmit` が終了コード 0。
+   **`npm run lint` は終了コード 0 にならない**（v2 で訂正）。着手前の実測で、
+   本リポジトリには既に **2 errors / 4 warnings** が存在し、`npm run lint` は終了コード 1 を返す:
+   - `components/SiteHeader.tsx:49:5` — `react-hooks/set-state-in-effect`（コード内に意図を説明するコメントあり）
+   - `components/SiteHeader.tsx:62:54` — `react/no-unescaped-entities`（`Addiction Int'l Film Festival` のアポストロフィ）
+   - 警告4件は `@next/next/no-img-element` 3件と `@next/next/no-page-custom-font` 1件で、
+     いずれも CLAUDE.md が「許容する仕様」と明記しているもの。
+
+   したがって受け入れ条件は**「lint の指摘が既存の 2 errors / 4 warnings から増えていないこと」**とする。
+   既存2件の修正は本計画のスコープ外（バグ修正に周辺の掃除を混ぜない）。
 2. 段階1完了時: `npm start` 起動後、8 ルートについて baseline との extract 比較で上記比較項目の diff が全件空（比較ラッパ `npm run verify:text` が exit 0）。
 3. 段階2完了時: `TURSO_*` 設定ありの `npm start` で 2 と同じ比較が exit 0（DB モード）。`TURSO_*` 未設定でも exit 0（フォールバックモード）。
 4. `git diff --exit-code -- app/globals.css` が終了コード 0（無変更）。

@@ -48,3 +48,7 @@ next-env.d.ts
 # 変換元では assets/film/・assets/nagigater/ だったもの。Web用に縮小したスチールのみ public/assets/ で追跡する）
 /public/assets/film/
 /public/assets/nagigater/
+
+# 検証の作業ファイル（baseline はコミットするが、実行のたびに作る current は除外）
+/verification/current/
+/verification/current.fingerprint.json
