@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-13 / ブランチ `main` / 最新コミット `e7904ca`
+最終更新: 2026-08-13 / ブランチ `main` / 最新コミット `6f4fec0`
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -11,7 +11,8 @@
 ## 1. 現在地
 
 公開8ページのうち **2ページ（tickets / legal）がコンテンツ駆動化済み**。
-DB・認証・管理UI・デプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
+Turso の dev/prod DB は作成・スキーマ適用・2ドキュメントの投入まで完了。
+認証・管理UI・Cloudflareデプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
 
 | タスク | 状態 | コミット |
 |---|---|---|
@@ -20,17 +21,17 @@ DB・認証・管理UI・デプロイは未着手。公開サイトの見た目�
 | task_002 Route Group で公開面/管理面を分離 | 完了 | `b2b9516` |
 | task_005/006 tickets をコンテンツ駆動化 | 完了 | `66d9cc2` |
 | task_006 legal をコンテンツ駆動化 | 完了 | `e7904ca` |
-| task_003 OpenNext / wrangler 導入 | 未着手（要ログイン） | — |
+| task_009 Turso スキーマ + seed | 完了（tickets/legal投入済み） | `6f4fec0` |
+| task_003 OpenNext / wrangler 導入 | 未着手（要 `wrangler login`） | — |
 | task_004 認証（proxy.ts + PBKDF2 + 署名Cookie） | 未着手 | — |
 | task_006 残り（privacy / terms / news / about） | 未着手 | — |
 | task_007 index / programme + 共有コンポーネント | 未着手 | — |
 | task_008 SiteHeader / SiteFooter | 未着手 | — |
-| task_009 Turso スキーマ + seed | 未着手（要ログイン） | — |
 | task_010 公開ページのDB読み出し切替 | 未着手 | — |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
 | task_012 管理API | 未着手 | — |
 | task_013 管理画面UI | 未着手 | — |
-| task_014 本番反映 | 未着手（要ログイン） | — |
+| task_014 本番反映 | 未着手（要 `wrangler login`） | — |
 
 ## 2. 検証の現状（毎コミットで確認しているもの）
 
@@ -75,6 +76,7 @@ npm run build         → 終了コード 0
 | 配信方式 | **`force-dynamic`**（ISR・ビルド時取得は却下） | A/B実験で差分は index の画像preload 1本のみと実測。変換元HTMLに無いタグなので不変条件違反ではない |
 | 公開/管理の分離 | **Route Group**（`app/(public)` / `app/(admin)`） | root layout が `/admin` にも公開ヘッダーを注入するため |
 | 比較の定義 | 出現回数ではなく **DOMパスごとの値** | 出現回数比較は要素の入れ替えを検出できない |
+| DBスキーマのバージョン管理 | `PRAGMA user_version` ではなく **`schema_migrations` テーブル** | 実測で判明: Turso の HTTP プロトコル（Hrana）は `PRAGMA user_version = N` の書き込みを拒否する（読み取りは可） |
 
 ## 5. 次にやること（この順で）
 
@@ -98,18 +100,14 @@ diff が出たら次に進まず直す。
 
 ## 6. 外部アカウントが要る作業（私の側では進められない）
 
-**Turso** — CLI は `/opt/homebrew/bin/turso`（v1.0.17）にインストール済みだが**未ログイン**。
-MCP サーバーは存在しない。ブラウザ認証が必要なので、次のどちらかを利用者が一度だけ実行する:
+**Turso** — 2026-08-13 に利用者が `turso auth login` を実行しログイン済み（アカウント `sawanori`、
+starter プラン、rows read 上限 500M/月）。以降は私が CLI で自動化した:
+`addiction-film-fes-dev` / `addiction-film-fes-prod`（東京リージョン）を作成し、
+スキーマ適用、tickets/legal の投入と読み戻し検証まで完了。接続情報は
+`.dev.vars`（dev用）と `.dev.vars.prod-reference`（prod用の控え）に保存済み（gitignore・chmod 600）。
 
-```
-turso auth login
-# もしくは https://api.turso.tech?redirect=false を開いてトークンを取得し
-turso config set token <トークン>
-```
-
-ログイン後は DB 作成・トークン発行・スキーマ適用・seed まで CLI で自動化できる。
-
-**Cloudflare** — `wrangler` は未導入。`npx wrangler login` がやはりブラウザ認証。
+**Cloudflare** — `wrangler` は未導入。`npx wrangler login` がブラウザ認証のため利用者本人の操作が要る。
+これが済むと OpenNext 導入（task_003）と本番デプロイ（task_014）に進める。
 
 **管理画面のパスワード** — 利用者が決める。平文は保存せず、
 `scripts/hash-password.mjs`（未実装）で PBKDF2 ハッシュにしてから環境変数に入れる。
