@@ -263,3 +263,92 @@ export type PrivacyDocument = {
   sections: PrivacySection[];
   footer: Inline;
 };
+
+/* ------------------------------------------------------------------ *
+ * about ページ
+ * ------------------------------------------------------------------ */
+
+/** 「開催の背景」の `.box` 1枚。段落を2つ持ち、2つ目には marginTop 14px が付く。 */
+export type AboutBackgroundBox = {
+  h: string;
+  p1: string;
+  p2: string;
+  delay?: string;
+  /** `dark` は `.box--dark`（1枚目のみ）。 */
+  variant?: "dark";
+};
+
+/** 「3つのアプローチ」の `.row-item` 1行。 */
+export type AboutApproachItem = {
+  no: string;
+  title: string;
+  desc: string;
+  meta: string;
+  delay?: string;
+};
+
+/** 開催概要テーブルの1行。label は `<strong>` で包む。値は `<span class="small muted">`・`<br>`・文中リンクを含む。 */
+export type AboutOutlineRow = {
+  label: string;
+  value: Inline;
+};
+
+/** 実行委員会の `.box` 1枚。 */
+export type AboutOrgBox = {
+  h: string;
+  p: string;
+  delay?: string;
+};
+
+/** パートナー募集の `.box` 1枚。`#contact` または `/news#press` への `.arrow` リンクを持つ。 */
+export type AboutPartnerBox = {
+  h: string;
+  p: string;
+  delay?: string;
+  link: { label: string; href: string };
+};
+
+/** お問い合わせテーブルの1行。label は素の文字列（`<strong>` なし）。 */
+export type AboutContactRow = {
+  label: string;
+  value: Inline;
+};
+
+export type AboutDocument = {
+  meta: PageMeta;
+  head: {
+    eyebrow: string;
+    /** `Bias into<br>Dialogue`。 */
+    title: Inline;
+    jp: string;
+    lead: string;
+  };
+  background: {
+    boxes: AboutBackgroundBox[];
+  };
+  approach: {
+    head: SectionHead;
+    items: AboutApproachItem[];
+  };
+  outline: {
+    head: SectionHead;
+    rows: AboutOutlineRow[];
+  };
+  org: {
+    head: SectionHead;
+    boxes: AboutOrgBox[];
+    note: string;
+  };
+  partner: {
+    cta: { text: string; link: { label: string; href: string } };
+    boxes: AboutPartnerBox[];
+  };
+  contact: {
+    eyebrow: string;
+    /** `Get in<br>Touch`。 */
+    title: Inline;
+    rows: AboutContactRow[];
+    note: string;
+    gridDelay: string;
+  };
+};

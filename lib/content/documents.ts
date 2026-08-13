@@ -3,7 +3,9 @@ import legalJson from "@/content/legal.json";
 import termsJson from "@/content/terms.json";
 import newsJson from "@/content/news.json";
 import privacyJson from "@/content/privacy.json";
+import aboutJson from "@/content/about.json";
 import type {
+  AboutDocument,
   LegalDocument,
   NewsDocument,
   PrivacyDocument,
@@ -24,3 +26,4 @@ export const legal = legalJson as unknown as LegalDocument;
 export const terms = termsJson as unknown as TermsDocument;
 export const news = newsJson as unknown as NewsDocument;
 export const privacy = privacyJson as unknown as PrivacyDocument;
+export const about = aboutJson as unknown as AboutDocument;
