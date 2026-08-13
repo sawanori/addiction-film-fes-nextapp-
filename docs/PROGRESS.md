@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-13 / ブランチ `main` / 最新コミット `e2466cc`
+最終更新: 2026-08-13 / ブランチ `main` / 最新コミット `edda002`
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -10,8 +10,8 @@
 
 ## 1. 現在地
 
-公開8ページのうち **task_006対象の6ページ（tickets / legal / terms / privacy / news / about）が
-コンテンツ駆動化済み**。残る index / programme（task_007）と SiteHeader/SiteFooter（task_008）は未着手。
+公開8ページのうち **task_006対象の6ページ + index/programme（task_007）の計8ページ全ページが
+コンテンツ駆動化済み**。残るのは SiteHeader/SiteFooter（task_008）のみ。
 Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tickets/legal）の投入まで完了（terms以降は未投入）。
 認証・管理UI・Cloudflareデプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
 
@@ -25,9 +25,9 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tic
 | task_009 Turso スキーマ + seed | 完了（tickets/legal投入済み） | `6f4fec0` |
 | task_006 privacy/terms/news をコンテンツ駆動化 | 完了（kimi/codex/geminiへ並行委譲） | `e6b7908` |
 | task_006 about をコンテンツ駆動化（task_006完了） | 完了（kimiへ委譲） | `e2466cc` |
+| task_007 index/programme + 共有コンポーネント4つ | 完了（kimi実装+codexレビュー） | `edda002` |
 | task_003 OpenNext / wrangler 導入 | 未着手（要 `wrangler login`） | — |
 | task_004 認証（proxy.ts + PBKDF2 + 署名Cookie） | 未着手 | — |
-| task_007 index / programme + 共有コンポーネント | 未着手 | — |
 | task_008 SiteHeader / SiteFooter | 未着手 | — |
 | task_010 公開ページのDB読み出し切替 | 未着手 | — |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
