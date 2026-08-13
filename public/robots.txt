@@ -1,0 +1,32 @@
+# アディクション国際映画祭〔企画中〕
+#
+# ■ 方針：検索結果に一切出さない（noindex）
+#
+#   全8ページの <head> に
+#     <meta name="robots" content="noindex, nofollow, noarchive">
+#   を入れてあります。検索結果からの除外は、この meta タグが担います。
+#
+# ■ なぜ Disallow で止めないのか
+#
+#   robots.txt の Disallow は「クロールの禁止」であって「インデックスの禁止」ではありません。
+#   外部サイトやメールからリンクされた場合、中身を読まずに URL だけが検索結果に出ることがあります。
+#   さらに Disallow でクロールを止めると、クローラーがページを取得できないため
+#   上記の noindex タグを読めず、除外指示が届きません（両者は互いを打ち消します）。
+#
+#   したがって「確実に検索に出さない」ためには、クロールを許可して noindex を読ませるのが正解です。
+#
+# ■ サイトマップ
+#
+#   noindex 運用のあいだは sitemap.xml を検索エンジンに送信しないでください。
+#   （ここにも意図的に Sitemap: 行を書いていません。正式公開時に有効化します）
+#
+# ■ 正式公開のとき
+#
+#   1. 全8ページから <meta name="robots" content="noindex, nofollow, noarchive"> を削除
+#   2. 下の Sitemap: 行のコメントを外し、ドメインを差し替え
+
+User-agent: *
+Allow: /
+
+# 正式公開時に有効化する
+# Sitemap: https://example.jp/sitemap.xml
