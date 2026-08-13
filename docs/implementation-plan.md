@@ -477,7 +477,12 @@ INSERT OR IGNORE INTO admin_settings (id, session_version) VALUES (1, 1);
 
 ### 10.3 マイグレーションの当て方
 
-- マイグレーションフレームワークは導入しない。`scripts/db-migrate.mjs` が **`PRAGMA user_version`** を読み、未適用のバージョン分だけ順に適用する（現時点で version 1 = §10.2）。各文は `IF NOT EXISTS` 付きで冪等。
+- マイグレーションフレームワークは導入しない。`scripts/db-migrate.mjs` が **`schema_migrations` テーブル**（`version INTEGER PRIMARY KEY`）を見て、未適用のバージョン分だけ順に適用する（現時点で version 1 = §10.2）。各文は `IF NOT EXISTS` 付きで冪等。
+  - **実装時の訂正（v2.1）**: 当初は `PRAGMA user_version` でバージョンを管理する予定だったが、
+    Turso dev DB に対する実測で、HTTP プロトコル（Hrana）が `PRAGMA user_version = N` の**書き込みを
+    `SQL_PARSE_ERROR` で拒否する**ことが判明した（読み取りの `PRAGMA user_version` は成功する）。
+    そのため通常のテーブルに変更した。dev/prod 両方への適用と、2回連続実行しても
+    `完了` にならず `適用不要` を返すこと（冪等性）を実測で確認済み。
 - 実行は環境変数 `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` を参照。dev/prod は URL を差し替えて同一スクリプトを流す。
 - 将来のスキーマ変更は version を 1 つ足した `ALTER TABLE` 等をスクリプトに追記する運用。
 

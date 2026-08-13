@@ -52,3 +52,9 @@ next-env.d.ts
 # 検証の作業ファイル（baseline はコミットするが、実行のたびに作る current は除外）
 /verification/current/
 /verification/current.fingerprint.json
+
+# Cloudflare Workers のローカルシークレットと作業ディレクトリ
+.dev.vars
+.dev.vars.*
+/.wrangler/
+/.open-next/
