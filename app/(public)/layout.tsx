@@ -1,6 +1,7 @@
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import ScrollReveal from "@/components/ScrollReveal";
+import { site } from "@/lib/content/documents";
 
 /**
  * 公開8ページ共通のレイアウト。
@@ -19,9 +20,9 @@ export default function PublicLayout({
 }) {
   return (
     <>
-      <SiteHeader />
+      <SiteHeader content={site.header} />
       {children}
-      <SiteFooter />
+      <SiteFooter content={site.footer} />
       <ScrollReveal />
     </>
   );

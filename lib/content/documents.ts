@@ -8,6 +8,7 @@ import indexJson from "@/content/index.json";
 import programmeJson from "@/content/programme.json";
 import filmsJson from "@/content/films.json";
 import timetableJson from "@/content/timetable.json";
+import siteJson from "@/content/site.json";
 import type {
   AboutDocument,
   FilmsDocument,
@@ -16,6 +17,7 @@ import type {
   NewsDocument,
   PrivacyDocument,
   ProgrammeDocument,
+  SiteDocument,
   TermsDocument,
   TicketsDocument,
   TimetableDocument,
@@ -39,3 +41,4 @@ export const index = indexJson as unknown as IndexDocument;
 export const programme = programmeJson as unknown as ProgrammeDocument;
 export const films = filmsJson as unknown as FilmsDocument;
 export const timetable = timetableJson as unknown as TimetableDocument;
+export const site = siteJson as unknown as SiteDocument;

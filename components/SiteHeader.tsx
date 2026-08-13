@@ -4,22 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useState } from "react";
 import SmartLink from "@/components/SmartLink";
+import type { SiteHeaderContent, SiteLink } from "@/lib/content/types";
 
-const NAV_ITEMS = [
-  { href: "/about", label: "About" },
-  { href: "/programme", label: "Programme" },
-  { href: "/tickets", label: "Tickets" },
-  { href: "/news", label: "News" },
-];
+function frag(pathname: string, base: string, hash: string) {
+  return hash && pathname === base ? hash : `${base}${hash}`;
+}
 
-export default function SiteHeader() {
+function hrefFor(pathname: string, link: SiteLink) {
+  return frag(pathname, link.base, link.hash);
+}
+
+export default function SiteHeader({ content }: { content: SiteHeaderContent }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-
-  // about ページだけは同一ページ内アンカー（#partner / #contact）になる
-  const isAbout = pathname === "/about";
-  const partnerHref = isAbout ? "#partner" : "/about#partner";
-  const contactHref = isAbout ? "#contact" : "/about#contact";
 
   // 開いている間は html と body に nav-open を付ける。
   // 描画前に確定させるため useLayoutEffect で反映し、cleanup で必ず外す
@@ -58,10 +55,15 @@ export default function SiteHeader() {
     <header className="header">
       <div className="wrap">
         <div className="header__top">
-          <Link className="brand" href="/">
-            <span className="brand__en">Addiction Int'l Film Festival</span>
-            <span className="brand__date">2026.10.11 — 10.12</span>
-            <span className="brand__jp">アディクション国際映画祭〔企画中〕</span>
+          <Link
+            className="brand"
+            href={frag(pathname, content.brand.base, content.brand.hash)}
+          >
+            <span className="brand__en">
+              {content.brand.en || <>Addiction Int'l Film Festival</>}
+            </span>
+            <span className="brand__date">{content.brand.date}</span>
+            <span className="brand__jp">{content.brand.jp}</span>
           </Link>
 
           <nav
@@ -70,29 +72,34 @@ export default function SiteHeader() {
             onClick={onNavClick}
           >
             <ul>
-              {NAV_ITEMS.map((item) => (
-                <li key={item.href}>
+              {content.nav.map((item) => (
+                <li key={`${item.base}${item.hash}`}>
                   <SmartLink
-                    href={item.href}
-                    aria-current={pathname === item.href ? "page" : undefined}
+                    href={hrefFor(pathname, item)}
+                    aria-current={
+                      !item.hash && pathname === item.base ? "page" : undefined
+                    }
                   >
                     {item.label}
                   </SmartLink>
                 </li>
               ))}
-              <li className="gnav__extra">
-                <SmartLink href={partnerHref}>パートナー募集</SmartLink>
-              </li>
-              <li className="gnav__extra">
-                <SmartLink href={contactHref}>お問い合わせ</SmartLink>
-              </li>
+              {content.extra.map((item) => (
+                <li className="gnav__extra" key={`${item.base}${item.hash}`}>
+                  <SmartLink href={hrefFor(pathname, item)}>
+                    {item.label}
+                  </SmartLink>
+                </li>
+              ))}
             </ul>
           </nav>
 
           <button
             className={open ? "nav-toggle is-open" : "nav-toggle"}
             type="button"
-            aria-label={open ? "メニューを閉じる" : "メニューを開く"}
+            aria-label={
+              open ? content.toggleLabel.close : content.toggleLabel.open
+            }
             aria-expanded={open}
             aria-controls="gnav"
             onClick={() => setOpen(!open)}
@@ -105,15 +112,19 @@ export default function SiteHeader() {
 
         <div className="header__bottom">
           <div className="partners-inline">
-            <span>MAIN PARTNER 募集中</span>
-            <span>OFFICIAL SUPPORTER 募集中</span>
-            <span>MEDIA PARTNER 募集中</span>
+            {content.partners.map((partner) => (
+              <span key={partner}>{partner}</span>
+            ))}
           </div>
           <div className="utility">
-            <span className="chip">DRAFT／仮デザイン</span>
-            <SmartLink href="/news">Press</SmartLink>
-            <SmartLink href={contactHref}>Contact</SmartLink>
-            <SmartLink href={pathname}>JA</SmartLink>
+            <span className="chip">{content.utility.chip}</span>
+            <SmartLink href={hrefFor(pathname, content.utility.press)}>
+              {content.utility.press.label}
+            </SmartLink>
+            <SmartLink href={hrefFor(pathname, content.utility.contact)}>
+              {content.utility.contact.label}
+            </SmartLink>
+            <SmartLink href={pathname}>{content.utility.language.label}</SmartLink>
           </div>
         </div>
       </div>

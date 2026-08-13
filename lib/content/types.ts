@@ -666,3 +666,67 @@ export type ProgrammeDocument = {
     link: TextLink;
   };
 };
+
+/* ------------------------------------------------------------------ *
+ * site ドキュメント（全ページ共通ヘッダー / フッター）
+ * ------------------------------------------------------------------ */
+
+/** ページ内アンカーを含む共通ナビリンク。`hash` が空文字なら通常のページリンク。 */
+export type SiteLink = {
+  label: string;
+  base: string;
+  hash: string;
+};
+
+export type SiteBrand = {
+  base: string;
+  hash: string;
+  en: string;
+  date: string;
+  jp: string;
+};
+
+export type SitePathnameLink = {
+  label: string;
+  href: "pathname";
+};
+
+export type SiteHeaderContent = {
+  brand: SiteBrand;
+  nav: SiteLink[];
+  extra: SiteLink[];
+  toggleLabel: {
+    open: string;
+    close: string;
+  };
+  partners: string[];
+  utility: {
+    chip: string;
+    press: SiteLink;
+    contact: SiteLink;
+    language: SitePathnameLink;
+  };
+};
+
+export type SiteFooterTextItem = {
+  label: string;
+};
+
+export type SiteFooterItem = SiteLink | SiteFooterTextItem;
+
+export type SiteFooterColumn = {
+  heading: string;
+  items: SiteFooterItem[];
+};
+
+export type SiteFooterContent = {
+  columns: SiteFooterColumn[];
+  note: string;
+  legal: SiteLink[];
+  copy: string;
+};
+
+export type SiteDocument = {
+  header: SiteHeaderContent;
+  footer: SiteFooterContent;
+};
