@@ -1,5 +1,6 @@
 import ticketsJson from "@/content/tickets.json";
-import type { TicketsDocument } from "@/lib/content/types";
+import legalJson from "@/content/legal.json";
+import type { LegalDocument, TicketsDocument } from "@/lib/content/types";
 
 /**
  * 同梱コンテンツ（正典データ）。
@@ -10,3 +11,4 @@ import type { TicketsDocument } from "@/lib/content/types";
  * DOM パス比較が保証する。
  */
 export const tickets = ticketsJson as unknown as TicketsDocument;
+export const legal = legalJson as unknown as LegalDocument;

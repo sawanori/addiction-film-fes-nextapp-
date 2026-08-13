@@ -90,3 +90,30 @@ export type TicketsDocument = {
     note: string;
   };
 };
+
+/* ------------------------------------------------------------------ *
+ * legal ページ（特定商取引法に基づく表記）
+ * ------------------------------------------------------------------ */
+
+/** 表記テーブルの1行。値は文中に `<br>`・`<span>`・リンクを含む。 */
+export type LegalRow = {
+  label: string;
+  value: Inline;
+};
+
+export type LegalDocument = {
+  meta: PageMeta;
+  head: {
+    eyebrow: string;
+    title: string;
+    jp: string;
+    lead: string;
+  };
+  intro: Inline;
+  rows: LegalRow[];
+  related: {
+    heading: string;
+    items: Inline[];
+  };
+  footer: Inline;
+};
