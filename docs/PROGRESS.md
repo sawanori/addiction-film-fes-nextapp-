@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-13 / ブランチ `main` / 最新コミット `edda002`
+最終更新: 2026-08-13 / ブランチ `main` / 最新コミット `cce4f57`
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -10,9 +10,9 @@
 
 ## 1. 現在地
 
-公開8ページのうち **task_006対象の6ページ + index/programme（task_007）の計8ページ全ページが
-コンテンツ駆動化済み**。残るのは SiteHeader/SiteFooter（task_008）のみ。
-Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tickets/legal）の投入まで完了（terms以降は未投入）。
+**公開8ページ全ページ + 共有ヘッダー/フッターのコンテンツ駆動化が完了**（task_005〜008）。
+Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tickets/legal）の投入まで完了
+（terms以降の6ドキュメントは未投入。task_010着手前に投入が要る）。
 認証・管理UI・Cloudflareデプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
 
 | タスク | 状態 | コミット |
@@ -26,10 +26,10 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tic
 | task_006 privacy/terms/news をコンテンツ駆動化 | 完了（kimi/codex/geminiへ並行委譲） | `e6b7908` |
 | task_006 about をコンテンツ駆動化（task_006完了） | 完了（kimiへ委譲） | `e2466cc` |
 | task_007 index/programme + 共有コンポーネント4つ | 完了（kimi実装+codexレビュー） | `edda002` |
+| task_008 SiteHeader / SiteFooter（公開面コンテンツ駆動化 完了） | 完了（codex実装+kimiレビュー） | `cce4f57` |
 | task_003 OpenNext / wrangler 導入 | 未着手（要 `wrangler login`） | — |
 | task_004 認証（proxy.ts + PBKDF2 + 署名Cookie） | 未着手 | — |
-| task_008 SiteHeader / SiteFooter | 未着手 | — |
-| task_010 公開ページのDB読み出し切替 | 未着手 | — |
+| task_010 公開ページのDB読み出し切替 | 未着手（要: terms/privacy/news/about/index/programme/site の投入） | — |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
 | task_012 管理API | 未着手 | — |
 | task_013 管理画面UI | 未着手 | — |
@@ -98,25 +98,18 @@ npm run build         → 終了コード 0
 | 比較の定義 | 出現回数ではなく **DOMパスごとの値** | 出現回数比較は要素の入れ替えを検出できない |
 | DBスキーマのバージョン管理 | `PRAGMA user_version` ではなく **`schema_migrations` テーブル** | 実測で判明: Turso の HTTP プロトコル（Hrana）は `PRAGMA user_version = N` の書き込みを拒否する（読み取りは可） |
 
-## 5. 次にやること（この順で）
+## 5. 次にやること
 
-1. ~~`app/(public)/privacy/page.tsx`~~ — 完了（`e6b7908`）
-2. ~~`app/(public)/terms/page.tsx`~~ — 完了（`e6b7908`）
-3. ~~`app/(public)/news/page.tsx`~~ — 完了（`e6b7908`）
-4. ~~`app/(public)/about/page.tsx`~~ — 完了（`e2466cc`）
-5. `app/(public)/page.tsx` + `app/(public)/programme/page.tsx` + `Films` / `Timetable` / `Hero` / `NewsletterForm`
-   （Films が index と programme をまたぐため**分割不可。1ステップでやる**）← 次はここ
-6. `SiteHeader` / `SiteFooter`（`site` ドキュメント。全ページ影響のため最後）
+コンテンツ駆動化（task_005〜008）はすべて完了した。次の候補は次の3つで、
+互いに独立しているのでどれから着手してもよい:
 
-各ページを直すたびに `npm run verify:text` を**8ルート全件**で回す。
-diff が出たら次に進まず直す。
+- **task_009残り**: `content/{terms,privacy,news,about,index,programme,site}.json`（7ドキュメント）
+  をTursoへ投入する（現状 tickets/legal の2件のみ投入済み）。task_010の前提
+- **task_003**: OpenNext / wrangler 導入。`npx wrangler login` が利用者の操作待ち
+- **task_004**: 認証基盤（proxy.ts + PBKDF2 + 署名Cookie）。task_003完了後が安全
 
-進め方は tickets / legal と同じ:
-
-- `lib/content/types.ts` にそのページのドキュメント型を足す
-- `content/<page>.json` に現在の値を書く
-- `lib/content/documents.ts` に読み込み口を足す
-- `app/(public)/<page>/page.tsx` を JSON 参照に書き換える
+いずれも着手時は `npm run verify:text` を**8ルート全件**で回し、diff が出たら
+次に進まず直す。task_010（DB読み出し切替）はtask_009残りの投入が終わってから。
 
 ## 6. 外部アカウントが要る作業（私の側では進められない）
 
