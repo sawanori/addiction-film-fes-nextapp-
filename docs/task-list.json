@@ -1,0 +1,510 @@
+{
+  "feature": "admin-panel",
+  "version": 2,
+  "note": "v1 は kimi k3 起草。codex/gemini の敵対的レビューと実測検証を経て v2 に改訂。裁定は docs/reviews/review-verdict.md、詳細は docs/implementation-plan.md を参照。",
+  "tasks": [
+    {
+      "task_id": "task_001",
+      "title": "回帰検証ハーネスを scripts/ へ移設し、DOMパス比較へ格上げする",
+      "goal": "公開8ルートの出力が変わっていないことを、出現回数ではなくDOMパスごとの値で機械判定できるようにする。以降の全タスクのゲートがこれに依存する。",
+      "scope": [
+        "scripts/snapshot.sh: 本番サーバから8ルートのHTMLを取得",
+        "scripts/fingerprint.mjs: DOMパスごとのタグ/class/主要属性/直下テキストを抽出",
+        "head の title/description/robots/html[lang]/link集合の抽出（chunkハッシュは正規化）",
+        "<!-- --> の出現数を0として記録",
+        "scripts/verify-text.sh: snapshot→fingerprint→baseline比較の一括ラッパ",
+        "verification/baseline/ に現行の baseline をコミット"
+      ],
+      "non_scope": ["公開ページの挙動変更", "管理画面の実装"],
+      "files_to_read": ["CLAUDE.md", "docs/implementation-plan.md"],
+      "files_to_create": [
+        "scripts/snapshot.sh",
+        "scripts/fingerprint.mjs",
+        "scripts/verify-text.sh",
+        "verification/baseline/*.html",
+        "verification/baseline.fingerprint.json"
+      ],
+      "files_to_modify": ["package.json"],
+      "dependencies": [],
+      "implementation_steps": [
+        "現行 main の状態で npm run build && npm start を起動",
+        "snapshot.sh で8ルートを取得し verification/baseline/ に保存",
+        "fingerprint.mjs を実装（DOMパス走査。パーサは依存追加せず正規表現ベースのトークナイザで足りるか判断し、足りなければ devDependency に軽量パーサを追加）",
+        "baseline.fingerprint.json を生成してコミット",
+        "verify-text.sh が baseline と現行を比較して exit 0 になることを確認"
+      ],
+      "done_definition": [
+        "npm run verify:text が終了コード0",
+        "意図的に1文字変えたページで verify:text が終了コード1になることを確認済み（検出力の実証）",
+        "npm run build / npx tsc --noEmit / npm run lint がすべて終了コード0"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint", "npm run verify:text"],
+      "risk_level": "low"
+    },
+    {
+      "task_id": "task_002",
+      "title": "Route Group で公開面と管理面を分離する",
+      "goal": "app/layout.tsx が /admin にも SiteHeader/SiteFooter/ScrollReveal を注入する構造を解消し、管理画面が公開レイアウトを継承しないようにする。",
+      "scope": [
+        "app/layout.tsx を html/head(フォント3行)/body{children} と metadata.robots のみに縮小",
+        "app/(public)/layout.tsx を新設し SiteHeader/SiteFooter/ScrollReveal を移設",
+        "既存8ページを app/(public)/ 配下へ移動（URLは不変）"
+      ],
+      "non_scope": ["DB化", "コンテンツのJSON化", "管理画面のUI"],
+      "files_to_read": ["app/layout.tsx", "docs/implementation-plan.md"],
+      "files_to_create": ["app/(public)/layout.tsx"],
+      "files_to_modify": [
+        "app/layout.tsx",
+        "app/page.tsx",
+        "app/about/page.tsx",
+        "app/programme/page.tsx",
+        "app/tickets/page.tsx",
+        "app/news/page.tsx",
+        "app/privacy/page.tsx",
+        "app/terms/page.tsx",
+        "app/legal/page.tsx"
+      ],
+      "dependencies": ["task_001"],
+      "implementation_steps": [
+        "app/(public)/ を作り8ルートのディレクトリを移動",
+        "SiteHeader/SiteFooter/ScrollReveal を (public)/layout.tsx へ移す",
+        "root layout から body 直下の3コンポーネントを除去",
+        "verify:text で8ルートの出力が baseline と一致することを確認"
+      ],
+      "done_definition": [
+        "npm run verify:text が終了コード0（公開面の出力は1文字も変わっていない）",
+        "8ルートのURLが変わっていない",
+        "npm run build / npx tsc --noEmit / npm run lint がすべて終了コード0"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint", "npm run verify:text"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_003",
+      "title": "OpenNext / wrangler を導入して Workers 上で現行サイトが動くことを確認する",
+      "goal": "コンテンツを一切変えない状態で Cloudflare Workers 上に載ることを先に確定させ、後段の差分切り分けを容易にする。",
+      "scope": [
+        "npx @opennextjs/cloudflare migrate の実行",
+        "wrangler.jsonc / open-next.config.ts の生成物確認",
+        ".gitignore に .wrangler/ と .dev.vars を追加",
+        "preview 上での8ルート fingerprint 比較"
+      ],
+      "non_scope": ["本番デプロイ", "DB接続", "認証"],
+      "files_to_read": ["package.json", "next.config.ts"],
+      "files_to_create": ["wrangler.jsonc", "open-next.config.ts"],
+      "files_to_modify": ["package.json", ".gitignore"],
+      "dependencies": ["task_002"],
+      "implementation_steps": [
+        "npx @opennextjs/cloudflare migrate を実行",
+        "生成された scripts 名とファイル内容を確認して計画へ反映",
+        "preview を起動して8ルートを取得し fingerprint 比較"
+      ],
+      "done_definition": [
+        "preview 上の8ルートが baseline と比較して差分0（Next自動生成のchunkハッシュ差を除く）",
+        "npm run build が終了コード0",
+        "peer dependency 警告が出ていない"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_004",
+      "title": "認証基盤（proxy.ts + PBKDF2 + 署名Cookie + レート制限）とログイン画面を作る",
+      "goal": "/admin が未認証で開けない状態を先に作る。Next 16 では middleware.js が廃止されているため proxy.ts を使う。",
+      "scope": [
+        "proxy.ts（export function proxy + config.matcher）",
+        "lib/admin/auth.ts（PBKDF2検証・HMAC署名/検証・定数時間比較）",
+        "lib/admin/rate-limit.ts（失敗カウント・ロック・期限切れ削除）",
+        "app/(admin)/layout.tsx と admin.css（.adm スコープ）",
+        "app/(admin)/admin/login/ のページとフォーム",
+        "app/api/admin/login|logout のRoute Handler",
+        "scripts/hash-password.mjs"
+      ],
+      "non_scope": ["コンテンツ編集UI", "DBのcontentテーブル"],
+      "files_to_read": [
+        "node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md",
+        "docs/implementation-plan.md"
+      ],
+      "files_to_create": [
+        "proxy.ts",
+        "lib/admin/auth.ts",
+        "lib/admin/rate-limit.ts",
+        "app/(admin)/layout.tsx",
+        "app/(admin)/admin.css",
+        "app/(admin)/admin/login/page.tsx",
+        "app/(admin)/admin/login/LoginForm.tsx",
+        "app/api/admin/login/route.ts",
+        "app/api/admin/logout/route.ts",
+        "scripts/hash-password.mjs",
+        ".dev.vars"
+      ],
+      "files_to_modify": ["package.json", ".gitignore"],
+      "dependencies": ["task_003", "task_006"],
+      "implementation_steps": [
+        "proxy.md を読んで Next 16 の正規シグネチャを確認",
+        "auth.ts を Web Crypto のみで実装（Node固有APIを使わない）",
+        "PBKDF2 の反復回数は preview で CPU 時間を実測してから決定",
+        "login/logout の Route Handler と画面を実装",
+        "middleware.ts を作っていないことを確認"
+      ],
+      "done_definition": [
+        "GET /admin が307で /admin/login へリダイレクトする",
+        "GET /api/admin/documents が401を返す",
+        "誤パスワード5回連続で429が返る",
+        "正パスワードで200 + Set-Cookie: aff_admin=...; HttpOnly; SameSite=Lax; Path=/ が返る",
+        "リポジトリルートに middleware.ts が存在しない",
+        "npm run verify:text が終了コード0（公開面に影響していない）"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint", "npm run verify:text"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_005",
+      "title": "実レンダリングHTMLを正典とするコンテンツ抽出スクリプトを作る",
+      "goal": "1065ノードを手転記せずJSON化する。TSXのASTではなく本番HTMLを正典にすることで、&amp; の二重エスケープと Films 04 の三項演算子の問題を回避する。",
+      "scope": [
+        "scripts/extract-content.mjs（DOMセレクタ→JSONパスの対応表方式）",
+        "インライン要素を Inline AST へ変換（隣接文字列は連結して正規化）",
+        "cls 許可リストの自動生成（lib/content/inline-allow.ts）",
+        "/ と /programme の両方から Films 04 の meta / metaProgramme を分離抽出",
+        "content/*.json（11ドキュメント）の生成"
+      ],
+      "non_scope": ["ページのJSON駆動化（task_006以降）", "DB投入"],
+      "files_to_read": [
+        "docs/content-inventory.md",
+        "components/Films.tsx",
+        "components/Timetable.tsx",
+        "components/Hero.tsx",
+        "app/legal/page.tsx"
+      ],
+      "files_to_create": [
+        "scripts/extract-content.mjs",
+        "lib/content/types.ts",
+        "lib/content/inline.tsx",
+        "lib/content/inline-allow.ts",
+        "content/site.json",
+        "content/index.json",
+        "content/about.json",
+        "content/programme.json",
+        "content/tickets.json",
+        "content/news.json",
+        "content/privacy.json",
+        "content/terms.json",
+        "content/legal.json",
+        "content/films.json",
+        "content/timetable.json"
+      ],
+      "files_to_modify": ["package.json", "tsconfig.json"],
+      "dependencies": ["task_001"],
+      "implementation_steps": [
+        "本番ビルドを起動して8ルートのHTMLを取得",
+        "ページごとのDOMセレクタ→JSONパス対応表を書く",
+        "インライン要素を Inline AST に変換する関数を実装（許可タグ5種）",
+        "content/*.json を生成",
+        "スクリプトを2回連続実行して git diff -- content/ が空であることを確認"
+      ],
+      "done_definition": [
+        "content/*.json が11ファイル生成される",
+        "2回連続実行で git diff -- content/ が空（決定性）",
+        "content/index.json の該当フィールドが 'Films & Talks'（エンティティ復号済み）である",
+        "content/films.json の04に meta と metaProgramme が別々に入っている",
+        "npx tsc --noEmit が終了コード0"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run content:extract"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_006",
+      "title": "ページをJSON駆動へ書き換える（tickets → legal/privacy/terms → news → about）",
+      "goal": "公開面を静的のまま、値の出どころだけを content/*.json に移す。各ページごとに8ルート全件のfingerprint比較で退行を検出する。",
+      "scope": [
+        "app/(public)/tickets/page.tsx",
+        "app/(public)/legal/page.tsx",
+        "app/(public)/privacy/page.tsx",
+        "app/(public)/terms/page.tsx",
+        "app/(public)/news/page.tsx",
+        "app/(public)/about/page.tsx",
+        "各ページの metadata を content の meta から生成"
+      ],
+      "non_scope": ["index と programme（task_007。Films共有のため分割不可）", "DB接続"],
+      "files_to_read": ["content/*.json", "lib/content/inline.tsx"],
+      "files_to_create": [],
+      "files_to_modify": [
+        "app/(public)/tickets/page.tsx",
+        "app/(public)/legal/page.tsx",
+        "app/(public)/privacy/page.tsx",
+        "app/(public)/terms/page.tsx",
+        "app/(public)/news/page.tsx",
+        "app/(public)/about/page.tsx"
+      ],
+      "dependencies": ["task_005"],
+      "implementation_steps": [
+        "1ページずつ書き換える",
+        "各ページ完了ごとに8ルート全件で verify:text を実行",
+        "diff が出たら次のページに進まず修復する"
+      ],
+      "done_definition": [
+        "対象6ページすべてで npm run verify:text が終了コード0",
+        "8ルートすべてで <!-- --> の出現数が0",
+        "npm run build / npx tsc --noEmit / npm run lint がすべて終了コード0"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint", "npm run verify:text"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_007",
+      "title": "index / programme と共有コンポーネント4つを同時にJSON駆動へ書き換える",
+      "goal": "Films が index と programme をまたぐため分割できない。Hero/Timetable/Films/NewsletterForm を props 化し、client 境界を越えられるシリアライズ可能な形にする。",
+      "scope": [
+        "app/(public)/page.tsx と app/(public)/programme/page.tsx",
+        "components/Films.tsx（variant 選択ロジックを metaProgramme 方式に）",
+        "components/Timetable.tsx（DAYS を props 化。program は Inline）",
+        "components/Hero.tsx（SLIDES と静的テキストを props 化）",
+        "components/NewsletterForm.tsx（ラベル・placeholder・aria-label を props 化）"
+      ],
+      "non_scope": ["DB接続", "SiteHeader/SiteFooter（task_008）"],
+      "files_to_read": ["components/Films.tsx", "components/Timetable.tsx", "components/Hero.tsx", "components/NewsletterForm.tsx"],
+      "files_to_create": [],
+      "files_to_modify": [
+        "app/(public)/page.tsx",
+        "app/(public)/programme/page.tsx",
+        "components/Films.tsx",
+        "components/Timetable.tsx",
+        "components/Hero.tsx",
+        "components/NewsletterForm.tsx"
+      ],
+      "dependencies": ["task_006"],
+      "implementation_steps": [
+        "共有コンポーネントを props 受け取りに変更",
+        "index と programme を同時に content 参照へ切替",
+        "Films 04 のクレジットが index で2行・programme で6行になることを確認",
+        "スライドショー・タブ・スワイプの挙動が変わっていないことを目視確認"
+      ],
+      "done_definition": [
+        "npm run verify:text が終了コード0",
+        "/ と /programme の Films 04 クレジットが baseline と一致（variant 出し分けが保たれている）",
+        "8ルートすべてで <!-- --> の出現数が0",
+        "npm run build / npx tsc --noEmit / npm run lint がすべて終了コード0"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint", "npm run verify:text"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_008",
+      "title": "SiteHeader / SiteFooter を site ドキュメント駆動にする",
+      "goal": "全ページに出る共通部を最後に移す。リンクは {label, base, hash} 構造で保存し、frag() のページ別分岐はレンダラに残す。",
+      "scope": [
+        "app/(public)/layout.tsx で site ドキュメントを読む",
+        "components/SiteHeader.tsx / SiteFooter.tsx を props 化",
+        "SiteLink 構造と frag() の維持"
+      ],
+      "non_scope": ["DB接続"],
+      "files_to_read": ["components/SiteHeader.tsx", "components/SiteFooter.tsx"],
+      "files_to_create": [],
+      "files_to_modify": ["app/(public)/layout.tsx", "components/SiteHeader.tsx", "components/SiteFooter.tsx"],
+      "dependencies": ["task_007"],
+      "implementation_steps": [
+        "site.json の SiteLink 構造を確定",
+        "frag() をレンダラ側に残したまま props 化",
+        "8ルートすべてで href がページごとに正しく出し分けられていることを fingerprint で確認"
+      ],
+      "done_definition": [
+        "npm run verify:text が終了コード0",
+        "/about での #partner と他ページでの /about#partner の出し分けが baseline と一致",
+        "npm run build / npx tsc --noEmit / npm run lint がすべて終了コード0"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint", "npm run verify:text"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_009",
+      "title": "Turso のスキーマ適用と seed を実装する",
+      "goal": "content/*.json をDBへ投入し、Unicodeの変質が起きていないことをコードポイント比較で保証する。",
+      "scope": [
+        "scripts/db-migrate.mjs（PRAGMA user_version 管理・冪等）",
+        "scripts/db-seed.mjs（skip-if-exists 既定・--force で上書き・読み戻し検証）",
+        "DDL（content_documents / content_revisions / login_attempts / admin_settings）"
+      ],
+      "non_scope": ["公開ページのDB読み出し（task_010）"],
+      "files_to_read": ["docs/implementation-plan.md"],
+      "files_to_create": ["scripts/db-migrate.mjs", "scripts/db-seed.mjs"],
+      "files_to_modify": ["package.json"],
+      "dependencies": ["task_008"],
+      "implementation_steps": [
+        "Turso で dev / prod の2DBを作成",
+        "db-migrate.mjs を実装して dev に適用",
+        "db-seed.mjs を実装して content/*.json を投入",
+        "読み戻して deep-equal とコードポイント配列一致を検証"
+      ],
+      "done_definition": [
+        "node scripts/db-migrate.mjs を2回連続実行しても成功する（冪等）",
+        "node scripts/db-seed.mjs の読み戻し検証が終了コード0",
+        "content_revisions に UNIQUE(doc_key, revision) が効いている"
+      ],
+      "verify_commands": ["npm run db:migrate", "npm run db:seed"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_010",
+      "title": "公開ページを DB 読み出しへ切り替える",
+      "goal": "content/*.json の直接importから Turso 読み出しへ移す。DB障害時は同梱JSONへフォールバックする。",
+      "scope": [
+        "lib/content/server.ts（getDocument / getDocuments / batch / フォールバック）",
+        "app/(public)/layout.tsx に force-dynamic を付与",
+        "全公開ページを getDocument(s) 経由に変更"
+      ],
+      "non_scope": ["管理UI"],
+      "files_to_read": ["content/*.json"],
+      "files_to_create": ["lib/content/server.ts"],
+      "files_to_modify": [
+        "app/(public)/layout.tsx",
+        "app/(public)/page.tsx",
+        "app/(public)/about/page.tsx",
+        "app/(public)/programme/page.tsx",
+        "app/(public)/tickets/page.tsx",
+        "app/(public)/news/page.tsx",
+        "app/(public)/privacy/page.tsx",
+        "app/(public)/terms/page.tsx",
+        "app/(public)/legal/page.tsx"
+      ],
+      "dependencies": ["task_009"],
+      "implementation_steps": [
+        "server.ts を実装（1リクエスト1往復になるよう batch でまとめる）",
+        "force-dynamic を付与して全ルートが ƒ になることをビルド出力で確認",
+        "TURSO_* あり／なしの両方で verify:text を実行"
+      ],
+      "done_definition": [
+        "TURSO_* 設定ありで npm run verify:text が終了コード0（DBモード）",
+        "TURSO_* 未設定で npm run verify:text が終了コード0（フォールバックモード）",
+        "ビルド出力で8ルートが ƒ (Dynamic) になっている",
+        "8ルートすべてで <!-- --> の出現数が0"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint", "npm run verify:text"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_011",
+      "title": "manifest と編集網羅性の検証を実装する",
+      "goal": "1065ノードすべてが manifest の documentKey/fieldPath から逆引きできることを機械的に保証する。これが無いと『値をコード定数に残したままDOM diff 0で合格する』抜け道が残る。",
+      "scope": [
+        "lib/content/manifest.ts（フィールド定義・path検証・ops適用・itemTemplate）",
+        "scripts/verify-coverage.mjs（inventory の全ノード → manifest 逆引き）"
+      ],
+      "non_scope": ["編集UIの見た目"],
+      "files_to_read": ["docs/content-inventory.md", "content/*.json"],
+      "files_to_create": ["lib/content/manifest.ts", "scripts/verify-coverage.mjs"],
+      "files_to_modify": ["package.json"],
+      "dependencies": ["task_010"],
+      "implementation_steps": [
+        "11ドキュメントぶんのフィールド定義を書く",
+        "inventory の各ノードに documentKey と fieldPath を割り当てる",
+        "逆引きできないノードを列挙して0にする"
+      ],
+      "done_definition": [
+        "node scripts/verify-coverage.mjs が終了コード0（未カバーノード0件）",
+        "NewsletterForm の placeholder / aria-label / ボタン文言が対象に含まれている",
+        "npx tsc --noEmit が終了コード0"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run verify:coverage"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_012",
+      "title": "管理APIを実装する（一覧 / 取得 / PATCH / revert）",
+      "goal": "楽観ロックとリビジョン記録を正しく行い、競合時に履歴を汚さない。",
+      "scope": [
+        "app/api/admin/documents/route.ts",
+        "app/api/admin/documents/[key]/route.ts（GET / PATCH）",
+        "app/api/admin/documents/[key]/revert/route.ts",
+        "ops検証（許可タグ5種・cls許可リスト・href のスキーム制限）",
+        "CSRF 3条件、セッション ver の DB 照合"
+      ],
+      "non_scope": ["編集画面のUI（task_013）"],
+      "files_to_read": ["lib/content/manifest.ts", "lib/admin/auth.ts"],
+      "files_to_create": [
+        "app/api/admin/documents/route.ts",
+        "app/api/admin/documents/[key]/route.ts",
+        "app/api/admin/documents/[key]/revert/route.ts"
+      ],
+      "files_to_modify": [],
+      "dependencies": ["task_011"],
+      "implementation_steps": [
+        "書き込みは client.batch(stmts, 'write') に統一",
+        "UPDATE の rowsAffected を検査して0なら409",
+        "ops を manifest で全件検証してから適用（部分適用しない）"
+      ],
+      "done_definition": [
+        "同一 baseRevision で PATCH を2回送ると2回目が409",
+        "content_revisions に重複 revision が0件",
+        "許可外の t / cls / href を送ると422",
+        "session_version を+1すると既存Cookieで401になる"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_013",
+      "title": "管理画面UI（ダッシュボード・編集フォーム・リビジョン履歴）を実装する",
+      "goal": "manifest からフォームを自動生成し、11ドキュメントすべてを編集できるようにする。",
+      "scope": [
+        "app/(admin)/admin/page.tsx（ドキュメント一覧）",
+        "app/(admin)/admin/docs/[key]/page.tsx と Editor.tsx",
+        "フィールド型ごとの入力（text / textarea / inline / array / image-path / checkbox / meta）",
+        "配列の追加・削除・並べ替え",
+        "リビジョン履歴とロールバック"
+      ],
+      "non_scope": ["画像バイナリのアップロード（フェーズ2）"],
+      "files_to_read": ["lib/content/manifest.ts"],
+      "files_to_create": [
+        "app/(admin)/admin/page.tsx",
+        "app/(admin)/admin/docs/[key]/page.tsx",
+        "app/(admin)/admin/docs/[key]/Editor.tsx"
+      ],
+      "files_to_modify": ["app/(admin)/admin.css"],
+      "dependencies": ["task_012"],
+      "implementation_steps": [
+        "manifest駆動のフォーム生成を実装",
+        "inline型の専用エディタ（許可タグ5種のみ選択可）を実装",
+        "保存時に trim / 正規化 / 全角半角変換を一切しないことを実装で保証",
+        "11ドキュメントすべてを開いて編集できることを確認"
+      ],
+      "done_definition": [
+        "11ドキュメントすべてが /admin/docs/[key] で開ける",
+        "配列の追加・削除・並べ替えが保存できる",
+        "往復編集（編集→公開反映→revert→baselineとdiff 0）が成功する",
+        "/admin/login のHTMLに公開ヘッダー/フッターのclassが出現しない",
+        "公開8ルートのHTMLに .adm セレクタが出現しない"
+      ],
+      "verify_commands": ["npm run build", "npx tsc --noEmit", "npm run lint", "npm run verify:text"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_014",
+      "title": "本番反映（prod DB + シークレット + デプロイ）",
+      "goal": "本番URLで公開面が baseline と一致し、管理画面から編集できることを実測する。",
+      "scope": [
+        "prod DB への migrate + seed",
+        "wrangler secret put による3シークレット登録",
+        "デプロイと本番での受け入れ確認"
+      ],
+      "non_scope": ["robots.txt の解除（公開判断は別途）"],
+      "files_to_read": ["docs/implementation-plan.md"],
+      "files_to_create": [],
+      "files_to_modify": [],
+      "dependencies": ["task_013"],
+      "implementation_steps": [
+        "prod DB を作成して migrate と seed",
+        "ADMIN_PASSWORD_PBKDF2 / ADMIN_SESSION_SECRET / TURSO_AUTH_TOKEN を wrangler secret put",
+        "デプロイして本番URLで verify:text",
+        "PBKDF2 の反復回数を preview の CPU 実測値で確定"
+      ],
+      "done_definition": [
+        "本番URLの8ルートが baseline と diff 0",
+        "本番の /admin でログイン→1件編集→公開反映→revert が成功",
+        "ログイン1回のCPU時間が Workers の上限内であることを実測済み"
+      ],
+      "verify_commands": ["npm run build", "npm run verify:text"],
+      "risk_level": "high"
+    }
+  ]
+}

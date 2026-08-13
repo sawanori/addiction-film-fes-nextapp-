@@ -1,0 +1,175 @@
+{
+  "feature": "admin-panel",
+  "version": 2,
+  "note": "『完全一致』の定義は docs/implementation-plan.md §14 を参照（DOMパスごとの値・head・<!-- -->0個）。",
+  "checks": [
+    {
+      "id": "check_001",
+      "target": "公開8ルートの出力",
+      "rule": "DBに現在値が入った状態でのレンダリング結果が、変更前のbaselineと一致すること",
+      "expected_result": "npm run verify:text が終了コード0。DOMパスごとのタグ/class/主要属性/直下テキストがすべて一致",
+      "manual_or_automated": "automated",
+      "verification_method": "npm run build && npm start の後 npm run verify:text"
+    },
+    {
+      "id": "check_002",
+      "target": "検証ツール自体の検出力",
+      "rule": "比較ツールが実際に差分を検出できること（偽陰性でないこと）",
+      "expected_result": "任意のページの可視テキストを1文字変えると verify:text が終了コード1になる",
+      "manual_or_automated": "automated",
+      "verification_method": "1文字変更→verify:text→終了コード1を確認→変更を戻す"
+    },
+    {
+      "id": "check_003",
+      "target": "React SSR のコメントノード",
+      "rule": "隣接テキストノードが生まれていないこと",
+      "expected_result": "8ルートすべてのHTMLで <!-- --> の出現数が0（baselineと同じ）",
+      "manual_or_automated": "automated",
+      "verification_method": "grep -o '<!-- -->' で各ルートを数える。verify:text に組み込む"
+    },
+    {
+      "id": "check_004",
+      "target": "head の不変条件",
+      "rule": "title / description / meta[name=robots] / html[lang] / Google Fonts の link 3本が変わっていないこと",
+      "expected_result": "8ルートすべてで一致。robots は noindex, nofollow, noarchive のまま",
+      "manual_or_automated": "automated",
+      "verification_method": "fingerprint.mjs の head 抽出結果を baseline と比較"
+    },
+    {
+      "id": "check_005",
+      "target": "app/globals.css",
+      "rule": "管理画面のCSSを1行も追加していないこと",
+      "expected_result": "git diff --exit-code -- app/globals.css が終了コード0",
+      "manual_or_automated": "automated",
+      "verification_method": "git diff --exit-code -- app/globals.css"
+    },
+    {
+      "id": "check_006",
+      "target": "編集の網羅性",
+      "rule": "可視テキスト1065ノードすべてが manifest の documentKey/fieldPath から逆引きできること",
+      "expected_result": "node scripts/verify-coverage.mjs が終了コード0（未カバー0件）",
+      "manual_or_automated": "automated",
+      "verification_method": "docs/content-inventory.md の各ノードを manifest と突き合わせる"
+    },
+    {
+      "id": "check_007",
+      "target": "認証（未ログイン）",
+      "rule": "/admin と管理APIが未認証でアクセスできないこと",
+      "expected_result": "GET /admin が307でLocationに /admin/login を含む。GET /api/admin/documents が401",
+      "manual_or_automated": "automated",
+      "verification_method": "curl -s -o /dev/null -w '%{http_code} %{redirect_url}' で確認"
+    },
+    {
+      "id": "check_008",
+      "target": "Next 16 のファイル規約",
+      "rule": "廃止された middleware.js 規約を使っていないこと",
+      "expected_result": "リポジトリルートに middleware.ts が存在せず proxy.ts が存在する",
+      "manual_or_automated": "automated",
+      "verification_method": "test ! -f middleware.ts && test -f proxy.ts"
+    },
+    {
+      "id": "check_009",
+      "target": "ログインのレート制限",
+      "rule": "総当たりが抑止されること",
+      "expected_result": "誤パスワードで5回連続POSTすると5回目以降が429を返し、retryAfterが含まれる",
+      "manual_or_automated": "automated",
+      "verification_method": "curl で POST /api/admin/login を6回叩いてステータスを確認"
+    },
+    {
+      "id": "check_010",
+      "target": "セッションのserver側失効",
+      "rule": "盗まれたCookieやパスワード変更後の既存セッションを失効させられること",
+      "expected_result": "有効なCookieを保持したまま admin_settings.session_version を+1すると、以後 GET /api/admin/documents が401",
+      "manual_or_automated": "automated",
+      "verification_method": "Cookie保持→DBでversion更新→同じCookieでAPIを叩く"
+    },
+    {
+      "id": "check_011",
+      "target": "楽観ロックとリビジョン履歴",
+      "rule": "競合時に履歴が汚れないこと",
+      "expected_result": "同一baseRevisionでPATCHを2回送ると2回目が409。SELECT doc_key, revision, COUNT(*) FROM content_revisions GROUP BY 1,2 HAVING COUNT(*)>1 が0行",
+      "manual_or_automated": "automated",
+      "verification_method": "curl で2回PATCH → SQLで重複確認"
+    },
+    {
+      "id": "check_012",
+      "target": "インラインAST のバリデーション",
+      "rule": "許可外のタグ・class・URLスキームを保存できないこと",
+      "expected_result": "t が列挙外、cls が許可リスト外、link.href が / と # 以外で始まる ops はいずれも422",
+      "manual_or_automated": "automated",
+      "verification_method": "curl で3種類の不正opsをPATCHして422を確認"
+    },
+    {
+      "id": "check_013",
+      "target": "保存型XSS",
+      "rule": "管理画面から保存した文字列がスクリプトとして実行されないこと",
+      "expected_result": "<script>alert(1)</script> を保存しても公開HTMLでは &lt;script&gt; とエスケープされ、生のscriptタグとして出現しない",
+      "manual_or_automated": "automated",
+      "verification_method": "PATCH で保存→公開HTMLをgrep→revert→verify:text が終了コード0"
+    },
+    {
+      "id": "check_014",
+      "target": "往復編集（主要フロー）",
+      "rule": "編集が即時公開され、ロールバックできること",
+      "expected_result": "PATCHで値を変更→公開ページに変更後の文字列が出現→revert→baselineとdiff 0",
+      "manual_or_automated": "automated",
+      "verification_method": "全11ドキュメントの代表フィールド、および配列のinsert/remove/moveで実施"
+    },
+    {
+      "id": "check_015",
+      "target": "DBフォールバック",
+      "rule": "Turso障害時も公開面が表示を維持すること",
+      "expected_result": "TURSO_* 未設定でも npm run verify:text が終了コード0（同梱JSONで表示）",
+      "manual_or_automated": "automated",
+      "verification_method": "環境変数を外して npm start → verify:text"
+    },
+    {
+      "id": "check_016",
+      "target": "seed のUnicode健全性",
+      "rule": "DB往復で文字が変質しないこと（〇○ の表記ゆれ等）",
+      "expected_result": "node scripts/db-seed.mjs の読み戻し検証（deep-equal + コードポイント配列一致）が終了コード0",
+      "manual_or_automated": "automated",
+      "verification_method": "seed後に全キーをSELECTしてソースJSONと比較"
+    },
+    {
+      "id": "check_017",
+      "target": "Route Group の分離",
+      "rule": "管理画面と公開面が相互に混入しないこと",
+      "expected_result": "/admin/login のHTMLに公開ヘッダー/フッターのclassが出現しない。公開8ルートのHTMLに .adm セレクタが出現しない",
+      "manual_or_automated": "automated",
+      "verification_method": "各HTMLを取得してgrep"
+    },
+    {
+      "id": "check_018",
+      "target": "モバイルレイアウト",
+      "rule": "管理画面がスマートフォン幅で操作可能であること",
+      "expected_result": "375px幅で横スクロールが発生せず、全フィールドの入力と保存ボタンに到達できる",
+      "manual_or_automated": "manual",
+      "verification_method": "ブラウザの375px幅で /admin/docs/[key] を開いて確認"
+    },
+    {
+      "id": "check_019",
+      "target": "ビルド・型・lint",
+      "rule": "既存の検証コマンドがすべて通ること",
+      "expected_result": "npm run build / npx tsc --noEmit / npm run lint がすべて終了コード0",
+      "manual_or_automated": "automated",
+      "verification_method": "3コマンドを順に実行"
+    },
+    {
+      "id": "check_020",
+      "target": "Cloudflare Workers ランタイム",
+      "rule": "Next のproduction serverではなくWorkers上でも同じ結果になること",
+      "expected_result": "opennextjs-cloudflare preview 上で check_001 と同じ比較が終了コード0。ログイン1回のCPU時間がplanの上限内",
+      "manual_or_automated": "automated",
+      "verification_method": "preview を起動して verify:text。CPU時間は wrangler の出力で確認"
+    },
+    {
+      "id": "check_021",
+      "target": "本番デプロイ",
+      "rule": "本番URLで公開面が変わらず、管理画面が機能すること",
+      "expected_result": "本番URLの8ルートがbaselineとdiff 0。/admin でログイン→1件編集→公開反映→revert が成功",
+      "manual_or_automated": "manual",
+      "verification_method": "本番URLに対して snapshot → fingerprint 比較、管理操作は手動"
+    }
+  ]
+}
