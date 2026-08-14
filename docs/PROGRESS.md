@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-14 / ブランチ `main` / 最新コミット `cbf8198`
+最終更新: 2026-08-14 / ブランチ `main` / 最新コミット `2bff7d9`
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -30,7 +30,8 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tic
 | task_007 index/programme + 共有コンポーネント4つ | 完了（kimi実装+codexレビュー） | `edda002` |
 | task_008 SiteHeader / SiteFooter（公開面コンテンツ駆動化 完了） | 完了（codex実装+kimiレビュー） | `cce4f57` |
 | task_003 OpenNext / wrangler 導入 | 完了 | `cbf8198` |
-| task_004 認証（proxy.ts + PBKDF2 + 署名Cookie） | 未着手 | — |
+| task_004a 認証コア（`lib/admin/auth.ts` + `proxy.ts`） | 完了 | `2bff7d9` |
+| task_004b ログイン画面 / login・logout API / レート制限 | 未着手 | — |
 | task_010 公開ページのDB読み出し切替 | 未着手（要: terms/privacy/news/about/index/programme/site の投入） | — |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
 | task_012 管理API | 未着手 | — |
@@ -73,6 +74,28 @@ privacy/terms/news/about の4ページは、この回から kimi/codex/gemini �
 修正計画書は `docs/plans/tasks/task_003-fix.md` に、レビューの採否は `docs/takeover-plan.md` §7 の
 ループに従って記録した。
 
+### task_004a完了にあたっての付記（2026-08-14追記）
+
+task_004（認証）は分量が大きいため **004a（認証コア）と 004b（ログイン画面・API・レート制限）に分割**した。
+004a で作ったのは `lib/admin/auth.ts`（286行）と `proxy.ts`（68行）の2ファイルのみ。
+暗号処理は Web Crypto（`crypto.subtle`）だけで書いてあり、Node 固有APIを使っていない。
+
+3者レビュー（Opus / codex / gemini-3.5-flash）で採用した4件を同じコミットで修正した。
+gemini-3.5-flash は指摘なし、codex が3件、Opus が1件:
+
+- セッション payload の実行時検証が無く `exp` 判定が fail-open だった（major）→ `iat`/`exp`/`ver` を
+  `Number.isSafeInteger()` で検証し、`exp > now` のときだけ通す形に変更
+- 定数時間比較が短い方の長さまでしかループせず、コメントと実装が食い違っていた（minor）→ 32バイト固定に
+- `proxy.ts` の `as unknown as NextResponse` という二重アサーション（minor）→ 戻り値型を
+  `NextResponse | Response` にしてアサーションを削除
+- 標準base64の `ADMIN_SESSION_SECRET` を base64url デコーダで復号していた（minor）→ `base64ToBytes` に修正
+
+検証はすべて Opus がメインリポジトリで独立実行した。Cookie 無し=307 / 有効な署名Cookie=404（proxy を
+通過し、ページ未実装のため404）/ 偽署名=307 / 期限切れ=307 / `exp` 欠落=307 / `exp` が文字列=307 /
+公開面 `/tickets`=200。**有効な署名Cookie は Opus が `auth.ts` とは別実装で生成し、相互運用を確認した。**
+
+`/admin/login` は現状404である（004b で作る）。修正計画書は `docs/plans/tasks/task_004a-fix.md`。
+
 ## 2. 検証の現状（毎コミットで確認しているもの）
 
 ```
@@ -81,6 +104,16 @@ BASE_URL=http://localhost:8787 npm run verify:text    → 完全一致（OpenNex
 npx tsc --noEmit      → 終了コード 0
 npm run lint          → 2 errors / 4 warnings（着手前と同じ。下記参照）
 npm run build         → 終了コード 0
+```
+
+認証まわりの手動確認では、シークレットを画面に出さずに注入できる次の起動方法を使う（2026-08-14 に実測）。
+`next start` は `.dev.vars` を読まないため、Node 22 の `--env-file` で渡す。`.dev.vars` は
+`KEY=value` 形式5件（コメント1行）で、`ADMIN_PASSWORD_PBKDF2` に `$` を含むが `--env-file` は
+シェル展開しないためそのまま渡る。
+
+```
+npm run build
+node --env-file=.dev.vars node_modules/next/dist/bin/next start -p 3111
 ```
 
 `npm run lint` は**着手前から終了コード1**である。エラー2件はいずれも
@@ -123,9 +156,12 @@ npm run build         → 終了コード 0
 
 ## 5. 次にやること
 
-コンテンツ駆動化（task_005〜008）と task_003（OpenNext / wrangler 導入）が完了した。次の候補は次の3つ:
+コンテンツ駆動化（task_005〜008）・task_003（OpenNext / wrangler 導入）・task_004a（認証コア）が完了した。
+次の候補は次の3つ:
 
-- **task_004**: 認証基盤（`proxy.ts` + PBKDF2 + 署名Cookie + レート制限）。task_003 完了により着手可能になった
+- **task_004b**: ログイン画面（`app/(admin)/`）・`/api/admin/login|logout`・`lib/admin/rate-limit.ts`。
+  004a の認証コアが揃っているので、これでログインが通るようになる。あわせて PBKDF2 100,000回が
+  Cloudflare Workers の CPU 時間上限に収まるかを preview で実測する（`docs/implementation-plan.md` §9.1 の宿題）
 - **task_009残り**: `content/` の未投入9件（`about` / `films` / `index` / `news` / `privacy` / `programme` /
   `site` / `terms` / `timetable`）を Turso へ投入する。**従来「7件」と書いていたのは誤りで、
   `films` と `timetable` が漏れていた。** task_010の前提
@@ -157,6 +193,12 @@ PBKDF2 ハッシュにしてから環境変数に入れる。`.dev.vars` の `AD
 （形式は `pbkdf2-sha256$100000$<salt 16バイト>$<hash 32バイト>`）。
 `ADMIN_SESSION_SECRET` は 32バイトの乱数（base64）。反復回数 100,000 が Cloudflare Workers の
 CPU時間上限に収まるかは preview で実測して確かめる（計画 §9.1。形式に反復回数を埋めてあるため後から変更できる）。
+**この実測は task_004b の手順に組み込んだ**（ログインAPIができて初めて測れるため）。
+
+なお**平文パスワードは私（Opus）も実装担当も持っていない**。したがって「正しいパスワードで200 +
+`Set-Cookie` が返る」の確認は私の側では実行できず、task_004b の受け入れ後に利用者本人に
+`/admin/login` で手動確認してもらう必要がある。私が確認できるのは誤パスワード・レート制限・CSRF拒否・
+Cookie 検証（自作の署名Cookieを使う）までである。
 
 ## 7. 未確認の前提
 
