@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-14 / ブランチ `main` / 最新コミットは本文書を含む task_004b 実装コミット
+最終更新: 2026-08-14 / ブランチ `main` / task_004b までがコミット済み（`146d72c`）
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -14,7 +14,8 @@
 Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tickets/legal）の投入まで完了
 （残り9ドキュメントは未投入。task_010着手前に投入が要る。内訳は §5）。
 **task_003（OpenNext / wrangler 導入）も完了し、Cloudflare Workers 上（OpenNext preview / workerd）でも
-公開8ルートが baseline と完全一致することを実測済み。**
+公開8ルートが baseline と完全一致することを実測済み**（ただし task_004a で `proxy.ts` を足して以降、
+Cloudflare 向けビルド自体が通らなくなっている。原因と対応は §9）。
 認証・管理UI・本番デプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
 
 | タスク | 状態 | コミット |
@@ -31,7 +32,8 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tic
 | task_008 SiteHeader / SiteFooter（公開面コンテンツ駆動化 完了） | 完了（codex実装+kimiレビュー） | `cce4f57` |
 | task_003 OpenNext / wrangler 導入 | 完了 | `cbf8198` |
 | task_004a 認証コア（`lib/admin/auth.ts` + `proxy.ts`） | 完了 | `2bff7d9` |
-| task_004b ログイン画面 / login・logout API / レート制限 | 完了（`next start` 上で検証済み。**Workers へのデプロイは §9 の未決事項が前提**） | 本コミット |
+| task_004b ログイン画面 / login・logout API / レート制限 | 完了（`next start` 上で検証済み） | `146d72c` |
+| task_004c `proxy.ts` 廃止と認証の app 層移設（§9） | 未着手。**これが終わるまで Cloudflare 向けビルドが通らない** | — |
 | task_010 公開ページのDB読み出し切替 | 未着手（要: terms/privacy/news/about/index/programme/site の投入） | — |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
 | task_012 管理API | 未着手 | — |
@@ -175,7 +177,8 @@ node --env-file=.dev.vars node_modules/next/dist/bin/next start -p 3111
 
 | 論点 | 決定 | 根拠 |
 |---|---|---|
-| ファイル規約 | `middleware.ts` ではなく **`proxy.ts`** | Next 16 で `middleware.js` は廃止・改名（`node_modules/next/dist/docs/` で確認） |
+| ファイル規約 | ~~`middleware.ts` ではなく **`proxy.ts`**~~ → **入口の門番を置かない**（2026-08-14 変更） | Next 16 で `middleware.js` は廃止・改名。しかし Next 16 の proxy は Node ランタイム固定で、`@opennextjs/cloudflare` が Node middleware 非対応のため Cloudflare 向けビルドが落ちる。§9 を参照 |
+| 認証の実行場所 | `proxy.ts` ではなく **各ページ・各APIハンドラの先頭**（`lib/admin/session.ts` を経由） | 上記に加え、Next の authentication ガイド1348-1354行が「レイアウトは遷移時に再レンダリングされず配下のレンダリングも止められないので、認証チェックはデータソースの近くで行う」と明記している |
 | リッチテキスト | 許可タグ5種（`br`/`strong`/`em`/`b`/`span`/`link`）の **Inline AST** | `<em>`3件・`<b>`5件・文中 `<span class="small muted">`・文中リンクが実在。`<br>`+`<strong>` の2形式では足りない |
 | レンダラ | JSX ではなく **`createElement`** で組む | JSX の行間改行がテキストノードに空白として混入する経路を避ける |
 | seed の正典 | TSX の AST ではなく **実レンダリングHTML** | `app/(public)/page.tsx:38` に `&amp;` が直書きされており AST では二重エスケープになる。Films 04 の三項演算子も AST では分離できない |
@@ -187,8 +190,9 @@ node --env-file=.dev.vars node_modules/next/dist/bin/next start -p 3111
 ## 5. 次にやること
 
 コンテンツ駆動化（task_005〜008）・task_003（OpenNext / wrangler 導入）・task_004（認証、a と b の両方）が
-完了した。**次の一手は §9 の未決事項（`proxy.ts` を廃止するか、Cloudflare をやめるか）の決着**であり、
-それが決まるまで task_014（本番反映）には進めない。DB 側の作業は影響を受けないので並行して進められる:
+完了した。**次の一手は task_004c**（`proxy.ts` の廃止と認証の app 層への移設。§9 の決定に基づく）。
+これが終わるまで Cloudflare 向けビルドが通らないため task_014（本番反映）には進めない。
+DB 側の作業は影響を受けないので並行して進められる:
 
 - **task_009残り**: `content/` の未投入9件（`about` / `films` / `index` / `news` / `privacy` / `programme` /
   `site` / `terms` / `timetable`）を Turso へ投入する。**従来「7件」と書いていたのは誤りで、
@@ -278,10 +282,43 @@ ERROR Node.js middleware is not currently supported. Consider switching to Edge 
 - `middleware.ts` へ戻す案も無効。`middleware.md` は「All functionality remains the same — only the
   file and export names have changed」と書いており、v16 では規約名が違うだけで同じく Node ランタイムになる。
 
-**対応方針は未決。** 選択肢は (a) `proxy.ts` を廃止して認証を app 層（管理画面のページ/レイアウトと
-各 `/api/admin/*` ハンドラ）で行う、(b) Cloudflare Workers をやめて Node ホストへ移す、の2つ。
-計画 §9 は元々「API ハンドラ側でも同一検証を行う（defense in depth）」と決めているため、(a) は
-その二重化のうち CDN 側を落とす形になる。利用者の判断を待つ。
+### 対応方針（2026-08-14 決定・利用者の判断）
+
+**`proxy.ts` を廃止し、認証を app 層（各ページと各 `/api/admin/*` ハンドラの先頭）で行う。**
+Cloudflare は継続する。計画 §9 は元々「API ハンドラ側でも同一検証を行う（defense in depth）」と
+決めているため、二重化のうち CDN 側を落とす形になる。実装は task_004c。
+
+Next の authentication ガイドもこの形を推奨している。1119行に「Proxy は最初の足切りには使えるが、
+唯一の防衛線にしてはいけない。大半のチェックはデータソースの近くで行うこと」、1348-1354行に
+**「レイアウトは遷移時に再レンダリングされず、配下のレンダリングを止めることもできないので、
+認証チェックはレイアウトではなくデータソースの近く、または条件付きで描画するコンポーネントで行う」**
+とある。したがって `app/(admin)/layout.tsx` に検証を置く案は採らない。
+
+**残る弱点**: 新しい管理ページやAPIを足したときに検証の呼び出しを忘れうる。task_013 で機械チェックの
+導入を検討する。
+
+### 却下した代替案: Next 15 へのダウングレード（実験して却下）
+
+「Next 15 なら middleware が Edge ランタイム既定なので Cloudflare に載るのでは」という案を、
+実験ブランチ `experiment/next15`（コミット `8b646b1`）で**実際に測って**判断した。
+
+| 確認 | 結果 |
+|---|---|
+| `next` / `eslint-config-next` を 15.5.23 へ（OpenNext の peer は `>=15.5.21 <16` を許容） | 導入できた |
+| `npx tsc --noEmit` / `npm run build` | 終了コード0。ビルド出力に `ƒ Middleware 34.6 kB` |
+| `npx opennextjs-cloudflare build` | **終了コード0**（`Bundling middleware function...` → `OpenNext build complete.`） |
+| `opennextjs-cloudflare preview`（workerd, :8787） | `/admin` が 307 → `/admin/login?next=%2Fadmin`、`/api/admin/documents` 401、`/admin/login` 200（form 1件）、誤パスワードの login API 401。**Cloudflare 上で門番が実際に効く** |
+| `npm run verify:text` | **145件の差分で失敗** |
+| `npm run lint` | **実行不能**（`eslint.config.mjs` が import する `eslint-config-next/core-web-vitals` が15系に無い） |
+
+**却下の理由は `verify:text` の145件。** 表示された60件の内訳は `<script>` の増加36件・`<head>` の
+link 18件・React のコメントマーカー 4→5 が3件・`<body>` 直下の子ノード列3件で、いずれも
+フレームワークが吐くタグであり、可視テキストと class の差分は表示分には無かった
+（残り85件は出力が打ち切られており未確認）。それでも baseline の取り直しが必要になり、
+**「移植で見た目を1文字も変えていない」ことの機械的な証明が一度リセットされる**。
+この安全網を失うことを避けた。あわせて、将来 Next 16 へ上げるときに同じ壁へ戻る点も理由。
+
+実験ブランチは記録として残す（main へはマージしない）。
 
 ### 併せて判明した2件（どちらも実測）
 
