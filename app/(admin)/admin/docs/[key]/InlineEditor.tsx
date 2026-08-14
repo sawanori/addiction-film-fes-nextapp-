@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * inline（リッチテキスト）の編集。
+ * 文中に装飾やリンクを含む文章の編集。
  *
- * 許可タグは5種（br / strong / em / b / span / link）で、`lib/admin/ops.ts` の
- * `isValidInline` が保存時にも同じ制約を検証する。ここではノードを1行ずつ並べて編集する。
- * 入れ子（強調の中の強調など）は現行データに存在しないため、装飾ノードの中身は
- * 「文字列1つ」に正規化して扱う。
+ * 保存できるのは許可タグ5種（改行 / 太字 strong・em・b / span / リンク）だけで、
+ * `lib/admin/ops.ts` の `isValidInline` が保存時にも同じ制約を検証する。
+ * 素人が迷わないよう、(1) 完成形のプレビューを上に出す、(2) 各行に「文章」「改行」「太字」
+ * 「リンク」と日本語で書く、(3) 追加ボタンを日本語にする、の3点を守っている。
+ * 入れ子（太字の中の太字など）は現行データに無いので、装飾の中身は文字列1つとして扱う。
  */
 
 type InlineNode =
@@ -24,20 +25,21 @@ function nodeText(node: InlineNode): string {
 }
 
 function label(node: InlineNode): string {
-  if (typeof node === "string") return "文字";
+  if (typeof node === "string") return "文章";
   switch (node.t) {
     case "br":
       return "改行";
     case "strong":
-      return "強調 (strong)";
-    case "em":
-      return "強調 (em)";
     case "b":
-      return "太字 (b)";
+      return "太字";
+    case "em":
+      return "強調";
     case "span":
-      return "span";
+      return "装飾";
     case "link":
       return "リンク";
+    default:
+      return "文章";
   }
 }
 
@@ -76,11 +78,28 @@ export default function InlineEditor({
 
   return (
     <div className="adm__inline">
+      <p className="adm__inline-preview">
+        {nodes.length === 0 ? (
+          <span className="adm__hint">まだ何も入っていません。下のボタンで追加してください。</span>
+        ) : (
+          nodes.map((node, i) => {
+            if (typeof node !== "string" && node.t === "br") return <br key={i} />;
+            const text = nodeText(node);
+            if (typeof node !== "string" && (node.t === "strong" || node.t === "b" || node.t === "em")) {
+              return <em key={i}>{text}</em>;
+            }
+            return <span key={i}>{text}</span>;
+          })
+        )}
+      </p>
+
       {nodes.map((node, i) => (
         <div className="adm__inline-row" key={i}>
-          <span className="adm__tag">{label(node)}</span>
+          <span className={typeof node !== "string" && node.t === "br" ? "adm__tag adm__tag--br" : "adm__tag"}>
+            {label(node)}
+          </span>
           {typeof node !== "string" && node.t === "br" ? (
-            <span className="adm__inline-br">（改行）</span>
+            <span className="adm__inline-br">ここで行が変わります</span>
           ) : (
             <input
               className="adm__field"
@@ -91,17 +110,18 @@ export default function InlineEditor({
           )}
           {typeof node !== "string" && node.t === "link" ? (
             <input
-              className="adm__field adm__field--href"
+              className="adm__field"
               type="text"
               value={node.href}
               onChange={(e) => replace(i, { ...node, href: e.target.value })}
+              placeholder="リンク先（例: /tickets）"
               aria-label="リンク先"
             />
           ) : null}
-          <button type="button" className="adm__mini" onClick={() => move(i, -1)} aria-label="上へ">
+          <button type="button" className="adm__mini" onClick={() => move(i, -1)} disabled={i === 0} aria-label="上へ移動">
             ↑
           </button>
-          <button type="button" className="adm__mini" onClick={() => move(i, 1)} aria-label="下へ">
+          <button type="button" className="adm__mini" onClick={() => move(i, 1)} disabled={i === nodes.length - 1} aria-label="下へ移動">
             ↓
           </button>
           <button type="button" className="adm__mini adm__mini--danger" onClick={() => remove(i)} aria-label="削除">
@@ -109,18 +129,19 @@ export default function InlineEditor({
           </button>
         </div>
       ))}
+
       <div className="adm__inline-add">
         <button type="button" className="adm__mini" onClick={() => add("")}>
-          + 文字
+          ＋ 文章
         </button>
         <button type="button" className="adm__mini" onClick={() => add({ t: "br" })}>
-          + 改行
+          ＋ 改行
         </button>
         <button type="button" className="adm__mini" onClick={() => add({ t: "strong", c: [""] })}>
-          + 強調
+          ＋ 太字
         </button>
         <button type="button" className="adm__mini" onClick={() => add({ t: "link", href: "", c: [""] })}>
-          + リンク
+          ＋ リンク
         </button>
       </div>
     </div>

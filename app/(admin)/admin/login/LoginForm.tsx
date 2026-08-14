@@ -49,22 +49,31 @@ export default function LoginForm({ next }: { next: string }) {
   }
 
   return (
-    <div className="adm__login-card">
-      <form onSubmit={handleSubmit}>
-        {error && <p className="adm__error">{error}</p>}
-        <input
-          className="adm__field"
-          type="password"
-          name="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoFocus
-        />
-        <button className="adm__button" type="submit" disabled={submitting}>
-          ログイン
-        </button>
-      </form>
+    <div className="adm__login">
+      <div className="adm__login-card">
+        <h1 className="adm__login-title">コンテンツ管理</h1>
+        <p className="adm__login-sub">アディクション国際映画祭のサイトを編集します。</p>
+
+        <form onSubmit={handleSubmit}>
+          {error && <p className="adm__error">{error}</p>}
+          <label className="adm__row">
+            <span className="adm__label">パスワード</span>
+            <input
+              className="adm__field"
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoFocus
+            />
+          </label>
+          <button className="adm__button" type="submit" disabled={submitting}>
+            {submitting ? "確認中…" : "ログイン"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

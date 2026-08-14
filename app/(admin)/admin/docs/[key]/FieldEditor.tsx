@@ -5,8 +5,12 @@ import InlineEditor from "./InlineEditor";
 
 /**
  * manifest のフィールド定義1件を描画する。group / array は再帰する。
- * 値の受け渡しは「具体パス（添字つき）と新しい値」で行い、状態の更新は
- * 呼び出し元（DocumentEditor）がまとめて持つ。
+ *
+ * 値の受け渡しは「具体パス（添字つき）と新しい値」で行い、状態は呼び出し元（DocumentEditor）が持つ。
+ * 素人が説明書なしで使えることを優先し、次の3点を守る:
+ * - 項目名は日本語（manifest 側で付けている）。補足がある項目は小さく説明を出す
+ * - 配列の各項目には**中身から作った見出し**を出す（「#3」だけでは何の項目か分からないため）
+ * - 長い配列は折りたたむ
  */
 
 export type ChangeHandler = (path: string, value: unknown) => void;
@@ -15,132 +19,283 @@ function isEmptyValue(value: unknown): boolean {
   return value === undefined || value === null;
 }
 
+/** 配列の項目に出す見出しを中身から作る。 */
+function itemTitle(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "boolean") return value ? "オン" : "オフ";
+  if (Array.isArray(value)) {
+    const text = value
+      .map((node) => (typeof node === "string" ? node : inlineText(node)))
+      .join("")
+      .trim();
+    return text;
+  }
+  if (typeof value === "object" && value !== null) {
+    const record = value as Record<string, unknown>;
+    // 見出しになりやすいキーから順に探す
+    const CANDIDATES = [
+      "t", "title", "label", "h", "q", "name", "term", "type", "jp", "en",
+      "d", "desc", "lead", "text", "value", "p", "p1", "program", "a",
+      "alt", "j", "time", "date", "no", "k", "heading", "kind", "src", "img", "href",
+    ];
+    for (const key of CANDIDATES) {
+      const candidate = record[key];
+      if (typeof candidate === "string" && candidate.trim()) {
+        // 画像やリンクはパス全体だと読みにくいので末尾だけ出す
+        return key === "src" || key === "img" ? candidate.split("/").pop() ?? candidate : candidate;
+      }
+      if (Array.isArray(candidate)) {
+        const text = itemTitle(candidate);
+        if (text) return text;
+      }
+    }
+  }
+  return "";
+}
+
+function inlineText(node: unknown): string {
+  if (typeof node === "string") return node;
+  if (typeof node !== "object" || node === null) return "";
+  const record = node as Record<string, unknown>;
+  if (record.t === "br") return " ";
+  return Array.isArray(record.c) ? record.c.map(inlineText).join("") : "";
+}
+
+function truncate(text: string, max = 48): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
+}
+
 export default function FieldEditor({
   field,
   value,
   path,
   onChange,
+  depth = 0,
 }: {
   field: Field;
   value: unknown;
   path: string;
   onChange: ChangeHandler;
+  depth?: number;
 }) {
+  /* ---------------- グループ ---------------- */
   if (field.type === "group") {
     const record = (value ?? {}) as Record<string, unknown>;
+    const children = field.fields.filter((child) => {
+      const childKey = child.path.slice(field.path.length + 1);
+      return !isEmptyValue(record[childKey]);
+    });
+
+    const body = children.map((child) => {
+      const childKey = child.path.slice(field.path.length + 1);
+      return (
+        <FieldEditor
+          key={child.path}
+          field={child}
+          value={record[childKey]}
+          path={path ? `${path}.${childKey}` : childKey}
+          onChange={onChange}
+          depth={depth + 1}
+        />
+      );
+    });
+
+    // 最上位は折りたためるカード、入れ子は控えめな囲みにする
+    if (depth === 0) {
+      return (
+        <details className="adm__section" open>
+          <summary>
+            {field.label}
+            {field.hint ? <span className="adm__summary-hint">{field.hint}</span> : null}
+          </summary>
+          <div className="adm__section-body">{body}</div>
+        </details>
+      );
+    }
+
     return (
-      <fieldset className="adm__group">
-        <legend className="adm__legend">{field.label}</legend>
-        {field.fields.map((child) => {
-          const childKey = child.path.slice(field.path.length + 1);
-          if (isEmptyValue(record[childKey])) return null;
-          return (
-            <FieldEditor
-              key={child.path}
-              field={child}
-              value={record[childKey]}
-              path={path ? `${path}.${childKey}` : childKey}
-              onChange={onChange}
-            />
-          );
-        })}
-      </fieldset>
+      <div className="adm__nest">
+        <p className="adm__nest-title">
+          {field.label}
+          {field.hint ? <span className="adm__hint">{field.hint}</span> : null}
+        </p>
+        {body}
+      </div>
     );
   }
 
+  /* ---------------- 配列 ---------------- */
   if (field.type === "array") {
     const items = Array.isArray(value) ? value : [];
     const setItems = (next: unknown[]) => onChange(path, next);
+    const move = (from: number, to: number) => {
+      if (to < 0 || to >= items.length) return;
+      const next = items.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      setItems(next);
+    };
 
-    return (
-      <fieldset className="adm__group adm__group--array">
-        <legend className="adm__legend">
-          {field.label}
-          <span className="adm__count">{items.length}件</span>
-        </legend>
+    const scalarItem =
+      field.item.type === "text" || field.item.type === "textarea" || field.item.type === "image";
 
-        {items.map((item, i) => (
-          <div className="adm__item" key={i}>
-            <div className="adm__item-bar">
-              <span className="adm__index">#{i + 1}</span>
-              <button
-                type="button"
-                className="adm__mini"
-                onClick={() => {
-                  if (i === 0) return;
+    const body = scalarItem ? (
+      <>
+        <div className="adm__items">
+          {items.map((item, i) => (
+            <div className="adm__scalar-row" key={i}>
+              <span className="adm__item-no">{i + 1}</span>
+              <input
+                className="adm__field"
+                type="text"
+                value={typeof item === "string" ? item : ""}
+                onChange={(e) => {
                   const next = items.slice();
-                  const [moved] = next.splice(i, 1);
-                  next.splice(i - 1, 0, moved);
+                  next[i] = e.target.value;
                   setItems(next);
                 }}
-              >
+              />
+              <button type="button" className="adm__mini" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="上へ移動">
                 ↑
               </button>
-              <button
-                type="button"
-                className="adm__mini"
-                onClick={() => {
-                  if (i === items.length - 1) return;
-                  const next = items.slice();
-                  const [moved] = next.splice(i, 1);
-                  next.splice(i + 1, 0, moved);
-                  setItems(next);
-                }}
-              >
+              <button type="button" className="adm__mini" onClick={() => move(i, i + 1)} disabled={i === items.length - 1} aria-label="下へ移動">
                 ↓
               </button>
               <button
                 type="button"
                 className="adm__mini adm__mini--danger"
                 onClick={() => setItems(items.filter((_, j) => j !== i))}
+                aria-label="削除"
               >
-                削除
+                ×
               </button>
             </div>
-            <FieldEditor field={field.item} value={item} path={`${path}.${i}`} onChange={onChange} />
-          </div>
-        ))}
-
+          ))}
+        </div>
         <button
           type="button"
-          className="adm__mini"
+          className="adm__mini adm__add"
           onClick={() => setItems([...items, structuredClone(field.template)])}
         >
-          + 追加
+          ＋ {field.label}を追加
         </button>
-      </fieldset>
+      </>
+    ) : (
+      <>
+        <div className="adm__items">
+          {items.map((item, i) => {
+            const title = truncate(itemTitle(item));
+            return (
+              <details className="adm__item" key={i} open={items.length <= 3}>
+                <summary>
+                  <span className="adm__item-no">{i + 1}</span>
+                  <span className={title ? "adm__item-title" : "adm__item-title adm__item-title--empty"}>
+                    {title || "（未入力）"}
+                  </span>
+                  <span className="adm__item-tools">
+                    <button type="button" className="adm__mini" onClick={(e) => { e.preventDefault(); move(i, i - 1); }} disabled={i === 0} aria-label="上へ移動">
+                      ↑
+                    </button>
+                    <button type="button" className="adm__mini" onClick={(e) => { e.preventDefault(); move(i, i + 1); }} disabled={i === items.length - 1} aria-label="下へ移動">
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="adm__mini adm__mini--danger"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (confirm(`「${title || "この項目"}」を削除します。よろしいですか？`)) {
+                          setItems(items.filter((_, j) => j !== i));
+                        }
+                      }}
+                    >
+                      削除
+                    </button>
+                  </span>
+                </summary>
+                <div className="adm__item-body">
+                  <FieldEditor field={field.item} value={item} path={`${path}.${i}`} onChange={onChange} depth={depth + 1} />
+                </div>
+              </details>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          className="adm__mini adm__add"
+          onClick={() => setItems([...items, structuredClone(field.template)])}
+        >
+          ＋ {field.label}を追加
+        </button>
+      </>
+    );
+
+    if (depth === 0) {
+      return (
+        <details className="adm__section" open>
+          <summary>
+            {field.label}
+            <span className="adm__count">{items.length}件</span>
+            {field.hint ? <span className="adm__summary-hint">{field.hint}</span> : null}
+          </summary>
+          <div className="adm__section-body">{body}</div>
+        </details>
+      );
+    }
+
+    return (
+      <div className="adm__nest">
+        <p className="adm__nest-title">
+          {field.label}
+          <span className="adm__count">{items.length}件</span>
+          {field.hint ? <span className="adm__hint">{field.hint}</span> : null}
+        </p>
+        {body}
+      </div>
     );
   }
 
+  /* ---------------- 値 ---------------- */
+  const labelBlock = (
+    <>
+      <span className="adm__label">{field.label}</span>
+      {field.hint ? <span className="adm__hint">{field.hint}</span> : null}
+    </>
+  );
+
   if (field.type === "inline") {
-    return (
-      <label className="adm__row">
-        <span className="adm__label">{field.label}</span>
+    return wrapTop(
+      depth,
+      <div className="adm__row">
+        {labelBlock}
         <InlineEditor value={value} onChange={(next) => onChange(path, next)} />
-      </label>
+      </div>
     );
   }
 
   if (field.type === "boolean") {
-    return (
-      <label className="adm__row adm__row--check">
-        <input
-          type="checkbox"
-          checked={value === true}
-          onChange={(e) => onChange(path, e.target.checked)}
-        />
-        <span className="adm__label">{field.label}</span>
-      </label>
+    return wrapTop(
+      depth,
+      <div className="adm__row">
+        <label className="adm__check">
+          <input type="checkbox" checked={value === true} onChange={(e) => onChange(path, e.target.checked)} />
+          <span>
+            <span className="adm__label">{field.label}</span>
+            {field.hint ? <span className="adm__hint">{field.hint}</span> : null}
+          </span>
+        </label>
+      </div>
     );
   }
 
   if (field.type === "textarea") {
-    return (
+    return wrapTop(
+      depth,
       <label className="adm__row">
-        <span className="adm__label">{field.label}</span>
+        {labelBlock}
         <textarea
           className="adm__field adm__field--area"
-          rows={3}
           value={typeof value === "string" ? value : ""}
           onChange={(e) => onChange(path, e.target.value)}
         />
@@ -149,27 +304,27 @@ export default function FieldEditor({
   }
 
   if (field.type === "image") {
-    return (
+    const src = typeof value === "string" ? value : "";
+    return wrapTop(
+      depth,
       <label className="adm__row">
-        <span className="adm__label">{field.label}</span>
-        <input
-          className="adm__field"
-          type="text"
-          value={typeof value === "string" ? value : ""}
-          onChange={(e) => onChange(path, e.target.value)}
-        />
-        {typeof value === "string" && value.startsWith("/") ? (
-          // 画像ファイル本体の差し替えはフェーズ2。ここではパス文字列の編集とプレビューまで
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="adm__thumb" src={value} alt="" />
-        ) : null}
+        {labelBlock}
+        <span className="adm__image">
+          <input className="adm__field" type="text" value={src} onChange={(e) => onChange(path, e.target.value)} />
+          {src.startsWith("/") ? (
+            // 画像ファイル本体の差し替えはフェーズ2。ここではパス文字列の編集とプレビューまで
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="adm__thumb" src={src} alt="" />
+          ) : null}
+        </span>
       </label>
     );
   }
 
-  return (
+  return wrapTop(
+    depth,
     <label className="adm__row">
-      <span className="adm__label">{field.label}</span>
+      {labelBlock}
       <input
         className="adm__field"
         type="text"
@@ -178,4 +333,9 @@ export default function FieldEditor({
       />
     </label>
   );
+}
+
+/** 最上位に単独で置かれる項目（注記など）はカードに入れて、他のセクションと揃える。 */
+function wrapTop(depth: number, node: React.ReactElement): React.ReactElement {
+  return depth === 0 ? <div className="adm__plain">{node}</div> : node;
 }

@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireAdminSession } from "@/lib/admin/session";
 import { readDocument, listRevisions } from "@/lib/admin/documents";
-import { buildManifest, documentLabel, DOCUMENT_KEYS, type DocumentKey } from "@/lib/content/manifest";
+import {
+  buildManifest,
+  documentLabel,
+  documentDescription,
+  DOCUMENT_KEYS,
+  type DocumentKey,
+} from "@/lib/content/manifest";
 import DocumentEditor from "./DocumentEditor";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +59,7 @@ export default async function AdminDocumentPage({
     <DocumentEditor
       docKey={key}
       label={documentLabel(key)}
+      description={documentDescription(key)}
       manifest={buildManifest(key as DocumentKey, stored.data)}
       initialData={stored.data}
       initialRevision={stored.revision}

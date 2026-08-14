@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdminSession } from "@/lib/admin/session";
 import { listDocuments } from "@/lib/admin/documents";
-import { documentLabel } from "@/lib/content/manifest";
+import { documentLabel, documentDescription } from "@/lib/content/manifest";
 import LogoutButton from "./LogoutButton";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "ダッシュボード | 管理画面",
+  title: "コンテンツ管理",
 };
 
 /** 公開ページのパス。`site` のようにページを持たないドキュメントは null。 */
@@ -26,46 +26,81 @@ const PUBLIC_PATH: Record<string, string | null> = {
   site: null,
 };
 
+/** 一覧の並び順。よく直すページを上に置く。 */
+const ORDER = [
+  "index",
+  "films",
+  "programme",
+  "timetable",
+  "tickets",
+  "news",
+  "about",
+  "site",
+  "privacy",
+  "terms",
+  "legal",
+];
+
+function formatDateTime(iso: string): string {
+  return iso.replace("T", " ").slice(0, 16);
+}
+
 export default async function AdminDashboardPage() {
   // 認証チェックはレイアウトではなくページ側で行う（lib/admin/session.ts のコメント参照）
   await requireAdminSession("/admin");
 
   const documents = await listDocuments();
+  const sorted =
+    documents === "db_error"
+      ? []
+      : [...documents].sort((a, b) => {
+          const ai = ORDER.indexOf(a.key);
+          const bi = ORDER.indexOf(b.key);
+          return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+        });
 
   return (
-    <main className="adm__page">
-      <header className="adm__bar">
-        <h1 className="adm__title">コンテンツ管理</h1>
-        <LogoutButton />
-      </header>
+    <>
+      <div className="adm__topbar">
+        <div className="adm__topbar-inner">
+          <div className="adm__brand">
+            <p className="adm__brand-title">アディクション国際映画祭　コンテンツ管理</p>
+            <span className="adm__brand-sub">サイトの文章と画像を差し替えます</span>
+          </div>
+          <a className="adm__ghost" href="/" target="_blank" rel="noreferrer">
+            サイトを見る
+          </a>
+          <LogoutButton />
+        </div>
+      </div>
 
-      {documents === "db_error" ? (
-        <p className="adm__error">データベースに接続できませんでした。</p>
-      ) : (
-        <table className="adm__table">
-          <thead>
-            <tr>
-              <th>ドキュメント</th>
-              <th>キー</th>
-              <th>版</th>
-              <th>最終更新</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {documents.map((doc) => (
-              <tr key={doc.key}>
-                <td>{documentLabel(doc.key)}</td>
-                <td><code>{doc.key}</code></td>
-                <td>{doc.revision}</td>
-                <td>{doc.updatedAt.replace("T", " ").slice(0, 19)}</td>
-                <td className="adm__actions">
-                  <Link className="adm__link" href={`/admin/docs/${doc.key}`}>
-                    編集
+      <main className="adm__page">
+        <p className="adm__note">
+          直したいページを選んで「編集する」を押してください。
+          <br />
+          保存すると公開サイトにすぐ反映されます。保存のたびに履歴が残るので、間違えても前の内容に戻せます。
+        </p>
+
+        {documents === "db_error" ? (
+          <p className="adm__error">
+            データベースに接続できませんでした。時間をおいて再読み込みしてください。
+          </p>
+        ) : (
+          <ul className="adm__cards">
+            {sorted.map((doc) => (
+              <li className="adm__card" key={doc.key}>
+                <h2 className="adm__card-title">{documentLabel(doc.key)}</h2>
+                <p className="adm__card-desc">{documentDescription(doc.key)}</p>
+                <div className="adm__card-meta">
+                  最終更新 {formatDateTime(doc.updatedAt)}　/　版 {doc.revision}
+                </div>
+                <div className="adm__card-actions">
+                  <Link className="adm__button" href={`/admin/docs/${doc.key}`}>
+                    編集する
                   </Link>
                   {PUBLIC_PATH[doc.key] ? (
                     <a
-                      className="adm__link"
+                      className="adm__ghost"
                       href={PUBLIC_PATH[doc.key] as string}
                       target="_blank"
                       rel="noreferrer"
@@ -73,12 +108,12 @@ export default async function AdminDashboardPage() {
                       公開ページ
                     </a>
                   ) : null}
-                </td>
-              </tr>
+                </div>
+              </li>
             ))}
-          </tbody>
-        </table>
-      )}
-    </main>
+          </ul>
+        )}
+      </main>
+    </>
   );
 }
