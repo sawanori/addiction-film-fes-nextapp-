@@ -19,7 +19,8 @@ type InlineNode =
 function nodeText(node: InlineNode): string {
   if (typeof node === "string") return node;
   if (node.t === "br") return "";
-  return node.c.map(nodeText).join("");
+  // manifest 側で inline と判定されていても、想定外の形が来たら落とさない
+  return Array.isArray(node.c) ? node.c.map(nodeText).join("") : "";
 }
 
 function label(node: InlineNode): string {

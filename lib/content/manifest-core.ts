@@ -59,14 +59,31 @@ function labelFor(key: string): string {
   return FIELD_LABELS[key] ?? key;
 }
 
-/** `[{t:"br"}, "…"]` のように装飾ノードを含む配列か。 */
+/** Inline AST で許可しているタグ（lib/admin/ops.ts の isValidInline と同じ5種）。 */
+const INLINE_TAGS = new Set(["br", "strong", "em", "b", "span", "link"]);
+
+/**
+ * Inline AST の装飾ノードか。
+ *
+ * **`t` というキーの有無だけで判定してはいけない。** 実データには `t` を普通の項目名として
+ * 使っている箇所がある（`films.items[].t` は作品タイトル、`index.quick.cards[].t` は見出し、
+ * `terms` の `blocks[]` は `{t:"p", value:[…]}` というブロック種別）。タグ名が許可5種であること、
+ * および `br` 以外は子ノード配列 `c` を持つことまで確かめる。
+ */
+function isInlineNodeObject(node: unknown): boolean {
+  if (typeof node !== "object" || node === null || Array.isArray(node)) return false;
+  const record = node as Record<string, unknown>;
+  if (typeof record.t !== "string" || !INLINE_TAGS.has(record.t)) return false;
+  if (record.t === "br") return true;
+  return Array.isArray(record.c);
+}
+
+/** `["…", {t:"br"}, {t:"strong", c:[…]}]` のような Inline AST の配列か。 */
 function hasMarkupNode(value: unknown): boolean {
-  return (
-    Array.isArray(value) &&
-    value.some(
-      (node) => typeof node === "object" && node !== null && "t" in (node as Record<string, unknown>)
-    )
-  );
+  if (!Array.isArray(value)) return false;
+  if (!value.some(isInlineNodeObject)) return false;
+  // 装飾ノードと文字列だけで構成されていること（他のオブジェクトが混ざる配列は inline ではない）
+  return value.every((node) => typeof node === "string" || isInlineNodeObject(node));
 }
 
 /**
