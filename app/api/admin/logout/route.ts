@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
+import { requireAdminApi } from "@/lib/admin/session";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<Response> {
   const cacheControlHeader = { "Cache-Control": "no-store" };
 
-  // CSRF検証
+  // 1. CSRF検証(既存ロジックのまま変更しない)
   const contentType = request.headers.get("content-type");
   if (!contentType || !contentType.toLowerCase().startsWith("application/json")) {
     return NextResponse.json(
@@ -40,7 +41,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Cookie失効
+  // 2. 認証チェック(proxy.ts 廃止に伴い、このハンドラ自身が行う)
+  const auth = await requireAdminApi();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  // 3. Cookie失効
   const cookieStore = await cookies();
   cookieStore.set("aff_admin", "", {
     httpOnly: true,

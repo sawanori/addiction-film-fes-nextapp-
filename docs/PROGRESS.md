@@ -14,8 +14,8 @@
 Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tickets/legal）の投入まで完了
 （残り9ドキュメントは未投入。task_010着手前に投入が要る。内訳は §5）。
 **task_003（OpenNext / wrangler 導入）も完了し、Cloudflare Workers 上（OpenNext preview / workerd）でも
-公開8ルートが baseline と完全一致することを実測済み**（ただし task_004a で `proxy.ts` を足して以降、
-Cloudflare 向けビルド自体が通らなくなっている。原因と対応は §9）。
+公開8ルートが baseline と完全一致することを実測済み**（task_004a の `proxy.ts` で一度ビルドが
+通らなくなったが、task_004c で解消した。経緯は §9）。
 認証・管理UI・本番デプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
 
 | タスク | 状態 | コミット |
@@ -33,7 +33,8 @@ Cloudflare 向けビルド自体が通らなくなっている。原因と対応
 | task_003 OpenNext / wrangler 導入 | 完了 | `cbf8198` |
 | task_004a 認証コア（`lib/admin/auth.ts` + `proxy.ts`） | 完了 | `2bff7d9` |
 | task_004b ログイン画面 / login・logout API / レート制限 | 完了（`next start` 上で検証済み） | `146d72c` |
-| task_004c `proxy.ts` 廃止と認証の app 層移設（§9） | 未着手。**これが終わるまで Cloudflare 向けビルドが通らない** | — |
+| task_004c `proxy.ts` 廃止と認証の app 層移設（§9） | 完了。`opennextjs-cloudflare build` が終了コード0に戻った | 本コミット |
+| task_009残り `content/` 全11件を Turso へ投入 | 完了（読み戻し検証OK） | 本コミット |
 | task_010 公開ページのDB読み出し切替 | 未着手（要: terms/privacy/news/about/index/programme/site の投入） | — |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
 | task_012 管理API | 未着手 | — |
@@ -190,14 +191,14 @@ node --env-file=.dev.vars node_modules/next/dist/bin/next start -p 3111
 ## 5. 次にやること
 
 コンテンツ駆動化（task_005〜008）・task_003（OpenNext / wrangler 導入）・task_004（認証、a と b の両方）が
-完了した。**次の一手は task_004c**（`proxy.ts` の廃止と認証の app 層への移設。§9 の決定に基づく）。
-これが終わるまで Cloudflare 向けビルドが通らないため task_014（本番反映）には進めない。
-DB 側の作業は影響を受けないので並行して進められる:
+完了した。task_004c（`proxy.ts` 廃止）と task_009残り（全11ドキュメントの投入）も終わったので、
+**次の一手は task_010（公開ページの DB 読み出し切替）**。その次が task_011（manifest と編集網羅性の検証）:
 
-- **task_009残り**: `content/` の未投入9件（`about` / `films` / `index` / `news` / `privacy` / `programme` /
-  `site` / `terms` / `timetable`）を Turso へ投入する。**従来「7件」と書いていたのは誤りで、
-  `films` と `timetable` が漏れていた。** task_010の前提
-- **task_010**: 公開ページの DB 読み出し切替。task_009残りの完了が前提
+- **task_010**: 公開ページの DB 読み出し切替。前提だった task_009残りは完了済み。
+  切替後に `npm run verify:text` を8ルート全件で回し、DB 経由でも完全一致することを確認する
+- **task_011**: manifest と `scripts/verify-coverage.mjs`。**着手前にドキュメントキーの命名を決着させる**
+  （§7の3点目。実装済みの `scripts/db-seed.mjs` が使っている素のファイル名 `tickets` / `legal` に
+  揃えるのが推奨。DB には既にその形で11件入っている）
 
 いずれも着手時は `npm run verify:text` を**8ルート全件**で回し、diff が出たら
 次に進まず直す。
@@ -261,7 +262,11 @@ Cookie 検証（自作の署名Cookieを使う）までである。
 （`docs/takeover-plan.md` §7）。
 
 
-## 9. Cloudflare へデプロイできない問題（task_004b で判明。2026-08-14）
+## 9. Cloudflare へデプロイできない問題（task_004b で判明 → task_004c で解消。2026-08-14）
+
+**解消済み。** `proxy.ts` を廃止し、認証を `lib/admin/session.ts`（DAL）経由で各APIハンドラの先頭に
+移した結果、`npx opennextjs-cloudflare build` が終了コード0に戻り、workerd 上で公開8ルートが
+baseline と完全一致することも再確認した（下の「task_004c の実測」参照）。以下は経緯の記録。
 
 **`proxy.ts` を置いたままでは `opennextjs-cloudflare build` が失敗する。** 実測した事実だけを書く。
 
@@ -319,6 +324,36 @@ link 18件・React のコメントマーカー 4→5 が3件・`<body>` 直下�
 この安全網を失うことを避けた。あわせて、将来 Next 16 へ上げるときに同じ壁へ戻る点も理由。
 
 実験ブランチは記録として残す（main へはマージしない）。
+
+### task_004c の実測（Opus が独立実行。実装担当の自己申告は使っていない）
+
+| 確認 | 結果 |
+|---|---|
+| `npx tsc --noEmit` / `npm run build` | 終了コード0 |
+| `npm run lint` | `✖ 6 problems (2 errors, 4 warnings)`（着手前と同一） |
+| `npm run verify:text` | 完全一致（8ルート / 要素1948個 / テキストノード1057個） |
+| `test ! -f proxy.ts && test ! -f middleware.ts` | 終了コード0 |
+| **`npx opennextjs-cloudflare build`** | **終了コード0**（`OpenNext build complete.`） |
+| preview（workerd, :8787）で `BASE_URL=... npm run verify:text` | **完全一致** |
+| preview: `/tickets` 200 / `/admin` 404 / `/admin/login` 200 / login 誤PW 401 / logout Cookie無し 401 | すべて期待どおり |
+
+`next start` 上では、実装担当には実行できない次の検証も行った（使い捨てパスワードのハッシュで
+`ADMIN_PASSWORD_PBKDF2` を環境変数から上書きし、署名付きCookieは `auth.ts` とは別実装で生成した）:
+
+| 確認 | 結果 |
+|---|---|
+| 正しいパスワードでログイン | 200 + `Set-Cookie: aff_admin=…; Max-Age=43200; HttpOnly; SameSite=lax` |
+| そのCookieでログアウト | 200 + `aff_admin=; Max-Age=0` + `Cache-Control: no-store` |
+| **`ver` を 999 にした署名付きCookie（DBは1）** | **401**（`session_version` の DB 照合が実際に効いている） |
+| 期限切れの署名付きCookie | 401 |
+| 別実装で署名した有効Cookie | 200（`auth.ts` との相互運用を確認） |
+| 署名が壊れたCookie | 401 |
+| Cookie無しのログアウト | 401（`proxy.ts` ではなくハンドラ自身が返す） |
+| CSRFヘッダ無しのログアウト | 400 |
+
+**観測しておく点**: preview 上の初回ログインPOSTが 3.13秒かかった（コールドスタート込み。
+task_004b 時点の実測は 初回0.467s / 2回目0.071s だった）。PBKDF2 の反復回数を判断する材料としては
+コールドスタートの影響を分離する必要がある。
 
 ### 併せて判明した2件（どちらも実測）
 
