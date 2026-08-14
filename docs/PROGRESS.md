@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-14 / ブランチ `main` / task_013 までコミット済み（`ddb32ee`）。残るは task_014（本番反映）のみ
+最終更新: 2026-08-14 / ブランチ `main` / **task_001〜014 すべて完了。本番稼働中**
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -15,7 +15,8 @@ Turso の dev/prod DB は作成・スキーマ適用・**全11ドキュメント
 **task_003（OpenNext / wrangler 導入）も完了し、Cloudflare Workers 上（OpenNext preview / workerd）でも
 公開8ルートが baseline と完全一致することを実測済み**（task_004a の `proxy.ts` で一度ビルドが
 通らなくなったが、task_004c で解消した。経緯は §9）。
-**認証・管理API・管理画面UIまで完了し、公開ページはDB読み出しに切り替わった。残るは本番反映（task_014）だけ。**
+**計画の全タスクが完了し、Cloudflare Workers 上で本番稼働している。**
+公開URL: https://addiction-film-fes-nextapp.snp-inc-info.workers.dev （`noindex` のため検索結果には出ない）
 公開サイトの見た目と文言は**1文字も変わっていない**（`npm run verify:text` が毎コミットで完全一致）。
 
 | タスク | 状態 | コミット |
@@ -39,7 +40,7 @@ Turso の dev/prod DB は作成・スキーマ適用・**全11ドキュメント
 | task_011 manifest + 編集網羅性の検証 | 完了（リーフ1078件すべて対応） | `bfc0657` |
 | task_012 管理API | 完了 | `32c5318` |
 | task_013 管理画面UI | 完了 | `ddb32ee` |
-| task_014 本番反映 | **デプロイ直前まで準備済み。実行は利用者の判断待ち**（§10） | — |
+| task_014 本番反映 | **完了。https://addiction-film-fes-nextapp.snp-inc-info.workers.dev で稼働中**（§10） | `f778298` の構成でデプロイ |
 
 ### task_006完了にあたっての付記（2026-08-13追記）
 
@@ -422,9 +423,9 @@ task_004b 時点の実測は 初回0.467s / 2回目0.071s だった）。PBKDF2 
 
 ---
 
-## 10. task_014（本番反映）の準備状況と、実行前に決めること
+## 10. task_014（本番反映）— 完了
 
-**デプロイの直前まで準備した。`npm run deploy` はまだ実行していない**（公開URLに載る不可逆な操作のため）。
+**2026-08-14 に利用者の承認を得てデプロイした。** 以下は準備内容と、デプロイ後に実測した結果。
 
 ### 準備済み（Opus が実施・実測）
 
@@ -465,3 +466,43 @@ npm run deploy                    # シークレット反映後にもう一度
 - `/admin` が 307 で `/admin/login` へ、`/admin/login` が 200
 - 実際のパスワードでログインでき、ダッシュボードに11件出る
 - PBKDF2 100,000回が Cloudflare のCPU時間上限に収まるか（プラン依存。§9の実測値を参照）
+
+### デプロイの実行結果（2026-08-14。すべて Opus が実測）
+
+```
+npm run deploy                     → 終了コード0
+  Worker: addiction-film-fes-nextapp
+  URL:    https://addiction-film-fes-nextapp.snp-inc-info.workers.dev
+  Worker Startup Time: 33 ms / Total Upload: 6012.19 KiB (gzip 1221.06 KiB)
+  バインディング: env.IMAGES（Images）/ env.ASSETS（Assets）※ R2 は外したので無し
+npx wrangler secret put ×4         → 4件とも成功。wrangler secret list で
+  ADMIN_PASSWORD_PBKDF2 / ADMIN_SESSION_SECRET / TURSO_AUTH_TOKEN / TURSO_DATABASE_URL を確認
+```
+
+**シークレット投入後の再デプロイは不要だった**（Workers のシークレットは即時反映され、
+投入直後のリクエストで既に有効だったことを実測で確認した。§10 の手順に書いていた
+「再デプロイ」は実際には不要）。
+
+| 確認 | 結果 |
+|---|---|
+| 公開8ルート | すべて 200（0.10〜0.80秒） |
+| **`BASE_URL=<本番URL> npm run verify:text`** | **完全一致: 8ルート / 要素1948個 / テキストノード1057個 / コメントノード0個** |
+| `<meta name="robots">` | `noindex, nofollow, noarchive`（検索結果には出ない） |
+| 本番DB経由の表示 | `/tickets` に `1日券` が出る（同梱JSONへのフォールバックではなくDB読み出し） |
+| `/admin`（未認証） | 307 → `/admin/login?next=%2Fadmin` |
+| `/api/admin/documents`（未認証） | 401 |
+| 実際のパスワードでログイン | 200 + `Set-Cookie: aff_admin=…; Max-Age=43200; Secure; HttpOnly; SameSite=lax` |
+| ダッシュボード / 編集画面 | 200。編集リンク11本、管理API一覧11件 |
+| 誤パスワード / ログアウト | 401 / 200 |
+| **PBKDF2 100,000回の本番実測** | ログインAPIの往復が 0.63s（初回）→ 0.20s → 0.11s。PBKDF2 を通らない CSRF 拒否は 0.047s、公開ページは 0.15s。**CPU時間上限による失敗は起きていない**（プランの上限に収まっている） |
+
+検証で使った `login_attempts` の行は本番DBから削除済み（0行）。
+
+### 公開後に残っている宿題
+
+- **掲載情報はすべて仮置き**（`PLACEHOLDERS.md`）。会期・料金・登壇者・応募要項・連絡先は確定した事実ではない
+- **パスワードが辞書語1語**。公開URLを知られた状態なので、長く複雑なものへの変更を勧める
+  （変更手順: `scripts/hash-password.mjs` でハッシュを作り `npx wrangler secret put ADMIN_PASSWORD_PBKDF2`）
+- `public/sitemap.xml` のドメインが `https://example.jp/` のまま。正式公開時に差し替える
+- 独自ドメインは未設定（`*.workers.dev` のまま）
+- 画像ファイル本体のアップロード（R2）はフェーズ2。いま編集できるのはパス文字列・alt・loading まで
