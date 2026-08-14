@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
 import SmartLink from "@/components/SmartLink";
 import { styleVars } from "@/lib/style";
-import { about } from "@/lib/content/documents";
+import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 
-export const metadata: Metadata = {
-  title: about.meta.title,
-  description: about.meta.description,
-};
+export const dynamic = "force-dynamic";
 
-export default function AboutPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const about = await getDocument("about");
+  return {
+    title: about.meta.title,
+    description: about.meta.description,
+  };
+}
+
+export default async function AboutPage() {
+  const about = await getDocument("about");
   const { head, background, approach, outline, org, partner, contact } = about;
 
   return (

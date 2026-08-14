@@ -1,13 +1,18 @@
 import { Fragment } from "react";
 import type { Metadata } from "next";
-import { terms } from "@/lib/content/documents";
+import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 import type { TermsBlock } from "@/lib/content/types";
 
-export const metadata: Metadata = {
-  title: terms.meta.title,
-  description: terms.meta.description,
-};
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const terms = await getDocument("terms");
+  return {
+    title: terms.meta.title,
+    description: terms.meta.description,
+  };
+}
 
 function renderBlock(block: TermsBlock, index: number) {
   if (block.t === "p") {
@@ -23,7 +28,8 @@ function renderBlock(block: TermsBlock, index: number) {
   );
 }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const terms = await getDocument("terms");
   const { head, intro, chapters, footer } = terms;
 
   return (

@@ -1,13 +1,18 @@
 import { Fragment } from "react";
 import type { Metadata } from "next";
-import { privacy } from "@/lib/content/documents";
+import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 import type { PrivacyBlock } from "@/lib/content/types";
 
-export const metadata: Metadata = {
-  title: privacy.meta.title,
-  description: privacy.meta.description,
-};
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const privacy = await getDocument("privacy");
+  return {
+    title: privacy.meta.title,
+    description: privacy.meta.description,
+  };
+}
 
 /** 条文本文の1ブロック。段落・箇条書き・表の DOM はここに残し、値だけを JSON から受け取る。 */
 function renderBlock(block: PrivacyBlock, key: number) {
@@ -42,7 +47,8 @@ function renderBlock(block: PrivacyBlock, key: number) {
   }
 }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const privacy = await getDocument("privacy");
   const { head, tocs, intro, sections, footer } = privacy;
 
   return (

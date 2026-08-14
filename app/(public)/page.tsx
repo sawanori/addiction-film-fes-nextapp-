@@ -4,15 +4,22 @@ import Films from "@/components/Films";
 import NewsletterForm from "@/components/NewsletterForm";
 import SmartLink from "@/components/SmartLink";
 import { styleVars } from "@/lib/style";
-import { films as filmsDoc, index } from "@/lib/content/documents";
+import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 
-export const metadata: Metadata = {
-  title: index.meta.title,
-  description: index.meta.description,
-};
+export const dynamic = "force-dynamic";
 
-export default function Home() {
+export async function generateMetadata(): Promise<Metadata> {
+  const index = await getDocument("index");
+  return {
+    title: index.meta.title,
+    description: index.meta.description,
+  };
+}
+
+export default async function Home() {
+  const index = await getDocument("index");
+  const filmsDoc = await getDocument("films");
   const {
     hero,
     quick,

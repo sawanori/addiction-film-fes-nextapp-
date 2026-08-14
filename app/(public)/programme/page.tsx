@@ -3,19 +3,23 @@ import Films from "@/components/Films";
 import Timetable from "@/components/Timetable";
 import SmartLink from "@/components/SmartLink";
 import { styleVars } from "@/lib/style";
-import {
-  films as filmsDoc,
-  programme,
-  timetable as timetableDoc,
-} from "@/lib/content/documents";
+import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 
-export const metadata: Metadata = {
-  title: programme.meta.title,
-  description: programme.meta.description,
-};
+export const dynamic = "force-dynamic";
 
-export default function ProgrammePage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const programme = await getDocument("programme");
+  return {
+    title: programme.meta.title,
+    description: programme.meta.description,
+  };
+}
+
+export default async function ProgrammePage() {
+  const filmsDoc = await getDocument("films");
+  const programme = await getDocument("programme");
+  const timetableDoc = await getDocument("timetable");
   const { head, films: filmsSection, guide, timetable, venue, cta } = programme;
 
   return (

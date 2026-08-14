@@ -35,7 +35,7 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tic
 | task_004b ログイン画面 / login・logout API / レート制限 | 完了（`next start` 上で検証済み） | `146d72c` |
 | task_004c `proxy.ts` 廃止と認証の app 層移設（§9） | 完了。`opennextjs-cloudflare build` が終了コード0に戻った | 本コミット |
 | task_009残り `content/` 全11件を Turso へ投入 | 完了（読み戻し検証OK） | 本コミット |
-| task_010 公開ページのDB読み出し切替 | 未着手（要: terms/privacy/news/about/index/programme/site の投入） | — |
+| task_010 公開ページのDB読み出し切替 | 完了（`next start` / workerd 双方で完全一致） | 本コミット |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
 | task_012 管理API | 未着手 | — |
 | task_013 管理画面UI | 未着手 | — |
@@ -150,6 +150,25 @@ codex（`-s read-only` サンドボックス）と gemini-3.5-flash（scratchpad
 ローカル検証でも `Secure` が付く（計画 §9.1 の「localhost の http 検証で Cookie が落ちる事故を避ける」
 という意図は満たしていない）。ブラウザは http://localhost を secure context として扱うため実害は
 出ない見込みだが、未確認である。
+
+### task_010完了にあたっての付記（2026-08-14追記）
+
+公開8ルートを Turso 読み出しへ切り替えた。`lib/content/load.ts` の `getDocument(key)` が
+`content_documents` から読み、**取れない場合は同梱JSON（`lib/content/documents.ts`）へフォールバック**する
+（DB未設定・行なし・例外・パース失敗の4条件。公開サイトは落とさない方針で、管理APIと違い fail-closed にしない）。
+`react` の `cache()` で包んでいるので `generateMetadata` とページ本体で DB 往復は1回。
+各ページは `export const dynamic = "force-dynamic"` + `async` 化し、`metadata` は `generateMetadata` にした。
+
+**DB が本当に表示元であることを実測で証明した**（コードを読んだだけでは証明にならないため）:
+DB の `tickets` の `head.title` を `OPUS_DB_PROOF` に書き換える → `/tickets` にその文字列が1件出現 →
+元のバイト列へ戻す（復元後の文字列一致を確認）→ 出現0件。再ビルドなしで反映されるので
+`force-dynamic` が効いていることも同時に確認できた。
+
+**`npm run verify:text` の起動方法を変えた。** 公開ページが DB を読むようになったため、DB 未接続で
+検証すると **index の画像 preload が1本消えて差分1件になる**（React が自動で出す resource hint で、
+変換元HTMLには無いタグ。ヘッドのフラッシュ順が DB 往復の有無で変わるため出たり消えたりする）。
+本番と同じ経路で検証するため、`scripts/verify-text.sh` は `.dev.vars` があれば読み込んで起動するようにした。
+`.dev.vars` が無い環境ではフォールバック経路の検証になり、この preload 1件だけ差分が出る。
 
 ## 2. 検証の現状（毎コミットで確認しているもの）
 

@@ -2,14 +2,19 @@ import { Fragment } from "react";
 import type { Metadata } from "next";
 import SmartLink from "@/components/SmartLink";
 import { styleVars } from "@/lib/style";
-import { tickets } from "@/lib/content/documents";
+import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 import type { Box } from "@/lib/content/types";
 
-export const metadata: Metadata = {
-  title: tickets.meta.title,
-  description: tickets.meta.description,
-};
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const tickets = await getDocument("tickets");
+  return {
+    title: tickets.meta.title,
+    description: tickets.meta.description,
+  };
+}
 
 /** `.box` の style。遅延が無い1枚目だけ style 属性そのものを付けない（変換元と同じ）。 */
 function boxStyle(box: Box, extra?: Record<string, string>) {
@@ -17,7 +22,8 @@ function boxStyle(box: Box, extra?: Record<string, string>) {
   return extra;
 }
 
-export default function TicketsPage() {
+export default async function TicketsPage() {
+  const tickets = await getDocument("tickets");
   const { head, price, novelty, faq } = tickets;
 
   return (

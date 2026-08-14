@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
 import SmartLink from "@/components/SmartLink";
 import { styleVars } from "@/lib/style";
-import { news } from "@/lib/content/documents";
+import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 
-export const metadata: Metadata = {
-  title: news.meta.title,
-  description: news.meta.description,
-};
+export const dynamic = "force-dynamic";
 
-export default function NewsPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const news = await getDocument("news");
+  return {
+    title: news.meta.title,
+    description: news.meta.description,
+  };
+}
+
+export default async function NewsPage() {
+  const news = await getDocument("news");
   const { head, latest, archive, press } = news;
 
   return (

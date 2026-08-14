@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import { legal } from "@/lib/content/documents";
+import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 
-export const metadata: Metadata = {
-  title: legal.meta.title,
-  description: legal.meta.description,
-};
+export const dynamic = "force-dynamic";
 
-export default function LegalPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const legal = await getDocument("legal");
+  return {
+    title: legal.meta.title,
+    description: legal.meta.description,
+  };
+}
+
+export default async function LegalPage() {
+  const legal = await getDocument("legal");
   const { head, intro, rows, related, footer } = legal;
 
   return (

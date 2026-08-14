@@ -1,7 +1,7 @@
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import ScrollReveal from "@/components/ScrollReveal";
-import { site } from "@/lib/content/documents";
+import { getDocument } from "@/lib/content/load";
 
 /**
  * 公開8ページ共通のレイアウト。
@@ -13,11 +13,13 @@ import { site } from "@/lib/content/documents";
  * Route Group（`(public)`）は URL に現れないので、8ルートのパスは
  * `/`, `/about`, … のまま変わらない。
  */
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const site = await getDocument("site");
+
   return (
     <>
       <SiteHeader content={site.header} />
