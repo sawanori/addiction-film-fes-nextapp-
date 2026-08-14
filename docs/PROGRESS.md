@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-13 / ブランチ `main` / 最新コミット `cce4f57`
+最終更新: 2026-08-14 / ブランチ `main` / 最新コミット `cbf8198`
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -12,8 +12,10 @@
 
 **公開8ページ全ページ + 共有ヘッダー/フッターのコンテンツ駆動化が完了**（task_005〜008）。
 Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tickets/legal）の投入まで完了
-（terms以降の6ドキュメントは未投入。task_010着手前に投入が要る）。
-認証・管理UI・Cloudflareデプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
+（残り9ドキュメントは未投入。task_010着手前に投入が要る。内訳は §5）。
+**task_003（OpenNext / wrangler 導入）も完了し、Cloudflare Workers 上（OpenNext preview / workerd）でも
+公開8ルートが baseline と完全一致することを実測済み。**
+認証・管理UI・本番デプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
 
 | タスク | 状態 | コミット |
 |---|---|---|
@@ -27,7 +29,7 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tic
 | task_006 about をコンテンツ駆動化（task_006完了） | 完了（kimiへ委譲） | `e2466cc` |
 | task_007 index/programme + 共有コンポーネント4つ | 完了（kimi実装+codexレビュー） | `edda002` |
 | task_008 SiteHeader / SiteFooter（公開面コンテンツ駆動化 完了） | 完了（codex実装+kimiレビュー） | `cce4f57` |
-| task_003 OpenNext / wrangler 導入 | 未着手（要 `wrangler login`） | — |
+| task_003 OpenNext / wrangler 導入 | 完了 | `cbf8198` |
 | task_004 認証（proxy.ts + PBKDF2 + 署名Cookie） | 未着手 | — |
 | task_010 公開ページのDB読み出し切替 | 未着手（要: terms/privacy/news/about/index/programme/site の投入） | — |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
@@ -53,10 +55,29 @@ privacy/terms/news/about の4ページは、この回から kimi/codex/gemini �
 いずれも最終的な受け入れ判定（build/tsc/lint/verify:text）はメインリポジトリで独立して実行し、
 各ツールの自己申告に依存していない。
 
+### task_003完了にあたっての付記（2026-08-14追記）
+
+`npx @opennextjs/cloudflare migrate` で導入した。生成物は次のとおり:
+`wrangler.jsonc`（`compatibility_date` 2026-08-14 / `compatibility_flags` は `nodejs_compat` と
+`global_fetch_strictly_public` / `main` は `.open-next/worker.js` / assets バインディングあり）、
+`open-next.config.ts`（`r2IncrementalCache` を有効化）、`public/_headers`（`/_next/static/*` の
+`Cache-Control`）。`next.config.ts` に `initOpenNextCloudflareForDev()` が追加され、`package.json` に
+`preview` / `deploy` / `upload` / `cf-typegen` が追加された。
+
+品質チェック（Opus / codex / gemini-3.5-flash の3者レビュー）で blocker が1件見つかり、同じコミットで
+修正した。**ESLint 9 のフラット設定は `.gitignore` を参照しないため、生成される `.open-next/`（91ファイル）と
+`.wrangler/`（2ファイル）を走査し、lint の指摘が 6件から 14873件（366 errors / 14507 warnings）へ増えていた。**
+`eslint.config.mjs` の `globalIgnores` に `.open-next/**` と `.wrangler/**` を追加して 6件へ戻した。
+あわせて `package.json` の末尾改行を復元した（migrate が落としていた）。
+
+修正計画書は `docs/plans/tasks/task_003-fix.md` に、レビューの採否は `docs/takeover-plan.md` §7 の
+ループに従って記録した。
+
 ## 2. 検証の現状（毎コミットで確認しているもの）
 
 ```
-npm run verify:text   → 完全一致: 8ルート / 要素1948個 / テキストノード1057個 / コメントノード0個
+npm run verify:text                                   → 完全一致: 8ルート / 要素1948個 / テキストノード1057個 / コメントノード0個
+BASE_URL=http://localhost:8787 npm run verify:text    → 完全一致（OpenNext preview / workerd）
 npx tsc --noEmit      → 終了コード 0
 npm run lint          → 2 errors / 4 warnings（着手前と同じ。下記参照）
 npm run build         → 終了コード 0
@@ -66,7 +87,9 @@ npm run build         → 終了コード 0
 `components/SiteHeader.tsx`（本作業で未変更）にあり、うち1件は
 `Addiction Int'l Film Festival` のアポストロフィで CLAUDE.md が文言変更を禁じている箇所。
 そのため受け入れ条件は「lint が0」ではなく**「指摘が既存から増えていない」**とした
-（`docs/implementation-plan.md` §14-1）。
+（`docs/implementation-plan.md` §14-1）。task_003 では一度 `.open-next/` / `.wrangler/` が
+走査対象に入り 14873件（366 errors / 14507 warnings）へ増えたが、`eslint.config.mjs` の
+`globalIgnores` 修正で 2 errors / 4 warnings に戻したことを確認済み（§1 付記参照）。
 
 ## 3. 作った検証の仕組み
 
@@ -100,16 +123,16 @@ npm run build         → 終了コード 0
 
 ## 5. 次にやること
 
-コンテンツ駆動化（task_005〜008）はすべて完了した。次の候補は次の3つで、
-互いに独立しているのでどれから着手してもよい:
+コンテンツ駆動化（task_005〜008）と task_003（OpenNext / wrangler 導入）が完了した。次の候補は次の3つ:
 
-- **task_009残り**: `content/{terms,privacy,news,about,index,programme,site}.json`（7ドキュメント）
-  をTursoへ投入する（現状 tickets/legal の2件のみ投入済み）。task_010の前提
-- **task_003**: OpenNext / wrangler 導入。`npx wrangler login` が利用者の操作待ち
-- **task_004**: 認証基盤（proxy.ts + PBKDF2 + 署名Cookie）。task_003完了後が安全
+- **task_004**: 認証基盤（`proxy.ts` + PBKDF2 + 署名Cookie + レート制限）。task_003 完了により着手可能になった
+- **task_009残り**: `content/` の未投入9件（`about` / `films` / `index` / `news` / `privacy` / `programme` /
+  `site` / `terms` / `timetable`）を Turso へ投入する。**従来「7件」と書いていたのは誤りで、
+  `films` と `timetable` が漏れていた。** task_010の前提
+- **task_010**: 公開ページの DB 読み出し切替。task_009残りの完了が前提
 
 いずれも着手時は `npm run verify:text` を**8ルート全件**で回し、diff が出たら
-次に進まず直す。task_010（DB読み出し切替）はtask_009残りの投入が終わってから。
+次に進まず直す。
 
 ## 6. 外部アカウントが要る作業（私の側では進められない）
 
@@ -119,11 +142,18 @@ starter プラン、rows read 上限 500M/月）。以降は私が CLI で自動
 スキーマ適用、tickets/legal の投入と読み戻し検証まで完了。接続情報は
 `.dev.vars`（dev用）と `.dev.vars.prod-reference`（prod用の控え）に保存済み（gitignore・chmod 600）。
 
-**Cloudflare** — `wrangler` は未導入。`npx wrangler login` がブラウザ認証のため利用者本人の操作が要る。
-これが済むと OpenNext 導入（task_003）と本番デプロイ（task_014）に進める。
+**Cloudflare** — 導入済み・ログイン済み。2026-08-14 に利用者が `npx wrangler login` を実行し、Opus が
+`npx --yes wrangler@latest whoami` で確認した（wrangler `4.123.0`、メール `snp.inc.info@gmail.com`、
+Account ID `d4913e1ffe09be28e048105f883431d0`）。**ただし `wrangler.jsonc` が宣言する R2 バケット
+`addiction-film-fes-nextapp-opennext-cache` は未作成のため、`npm run deploy` はまだ成立しない**
+（ローカル preview は miniflare が代替するため通る）。task_014（本番反映）の前提条件として引き継ぐ。
+あわせて、配信方式が `force-dynamic`（`docs/implementation-plan.md` §7.2）である以上、
+R2 増分キャッシュが本当に要るのかを task_010 の時点で判断する必要がある。
 
 **管理画面のパスワード** — 利用者が決める。平文は保存せず、
-`scripts/hash-password.mjs`（未実装）で PBKDF2 ハッシュにしてから環境変数に入れる。
+`scripts/hash-password.mjs`（コミット `190651e` で実装済み。従来この節を「未実装」と書いていたのは誤り）で
+PBKDF2 ハッシュにしてから環境変数に入れる。`.dev.vars` には既に `ADMIN_PASSWORD_PBKDF2` と
+`ADMIN_SESSION_SECRET` が入っているが、**その値が利用者の意図したパスワードから生成されたものかは未確認**。
 
 ## 7. 未確認の前提
 
@@ -134,6 +164,10 @@ starter プラン、rows read 上限 500M/月）。以降は私が CLI で自動
   フェーズ1で編集できるのは画像の**パス文字列・alt・loading** まで。
   したがってフェーズ1完了時点では「全ての情報を網羅的に編集できる」は
   **テキストと画像参照については真、画像ファイル本体については偽**（`docs/implementation-plan.md` §5）
+- **ドキュメントキーの命名がまだ未解決。** `docs/implementation-plan.md` §10.1 のドキュメント一覧表は
+  `page.tickets` `page.legal` … と書いているが、実装済みの `scripts/db-seed.mjs` は `tickets` `legal` という
+  素のファイル名をキーにしている。manifest（task_011）・管理API（task_012）の設計に影響するため、
+  task_011 着手前にどちらへ揃えるかを決着させる必要がある
 
 ## 8. この作業で使ったモデル
 
@@ -142,3 +176,9 @@ starter プラン、rows read 上限 500M/月）。以降は私が CLI で自動
 - 敵対的レビュー: codex（`docs/reviews/codex-review.md`）と gemini（`docs/reviews/gemini-review.md`）。
   gemini は MCP 経由が backend 未導入で失敗したため CLI を直接実行した
 - 採否の裁定と実装: Claude（`docs/reviews/review-verdict.md`）
+
+**2026-08-14以降の体制**: Opus が現状把握・設計・検証、Sonnet が計画書執筆
+（`docs/takeover-plan.md`、`docs/plans/tasks/*.md`）、haiku が実装、という分業に切り替えた。
+実装完了後の品質チェックは Opus / codex（`codex-cli 0.139.0`）/ gemini（CLI `0.38.1`、
+モデルは `gemini-3.5-flash`。`gemini-3.5-pro` と `gemini-3-pro` は404で存在しない）の3者で行う
+（`docs/takeover-plan.md` §7）。
