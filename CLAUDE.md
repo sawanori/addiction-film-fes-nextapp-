@@ -56,7 +56,7 @@ import alias は `@/*` → リポジトリルート。
 ## 公開前の未確定事項
 
 - **掲載情報はすべて仮置き。** 差し替え対象の全件は `PLACEHOLDERS.md` にある。会期・料金・登壇者・応募要項・連絡先は確定した事実ではない。
-- `public/robots.txt` は現在**全面 Disallow**。仮の会期・料金が検索結果に載るのを避けるためで、正式公開時に解除する。`public/sitemap.xml` のドメインは `https://example.jp/` のまま。
+- 検索結果に出さないための手当ては **`app/layout.tsx` の `metadata.robots`（`noindex, nofollow, noarchive`）**が担う。`public/robots.txt` は `Allow: /` で**クロールを許可している**（Disallow で止めるとクローラーが noindex を読めなくなるため。理由は robots.txt 本文のコメントに書いてある）。`Sitemap:` 行はコメントアウトしてあり、`public/sitemap.xml` のドメインは `https://example.jp/` のまま。**この節は以前「robots.txt は全面 Disallow」と書いていたが誤りで、2026-08-14 に実ファイルと突き合わせて訂正した。**
 - `privacy` / `terms` / `legal` は法務未確認の雛形で、未確定箇所は本文に〔調整中〕として残っている。
 - `/public/assets/film/`・`/public/assets/nagigater/`（権利者から預かった原本素材 計4.5GB）と `*.pptx` は `.gitignore` で除外。追跡しているのは Web用に縮小した `public/assets/films/` のみ。
 

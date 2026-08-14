@@ -38,8 +38,9 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tic
 | task_010 公開ページのDB読み出し切替 | 完了（`next start` / workerd 双方で完全一致） | 本コミット |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
 | task_012 管理API | 未着手 | — |
-| task_013 管理画面UI | 未着手 | — |
-| task_014 本番反映 | 未着手（要 `wrangler login`） | — |
+| task_012 管理API | 完了 | `32c5318` |
+| task_013 管理画面UI | 完了 | `ddb32ee` |
+| task_014 本番反映 | **デプロイ直前まで準備済み。実行は利用者の判断待ち**（§10） | — |
 
 ### task_006完了にあたっての付記（2026-08-13追記）
 
@@ -419,3 +420,49 @@ task_004b 時点の実測は 初回0.467s / 2回目0.071s だった）。PBKDF2 
    往復は 初回 0.467s / 2回目 0.071s / 3回目 0.054s（Turso 東京への往復2回を含む）。
    CSRF で弾く経路は 0.004s。**Cloudflare の CPU 時間上限に収まるかは契約プランに依存する**ため、
    task_014 でプランを確認する。反復回数はハッシュ文字列に埋め込んであるので後から変更できる。
+
+---
+
+## 10. task_014（本番反映）の準備状況と、実行前に決めること
+
+**デプロイの直前まで準備した。`npm run deploy` はまだ実行していない**（公開URLに載る不可逆な操作のため）。
+
+### 準備済み（Opus が実施・実測）
+
+| 項目 | 状態 |
+|---|---|
+| 本番 Turso DB（`addiction-film-fes-prod`）へのスキーマ適用 | 済（`schema_migrations` 1行 / `admin_settings` 1行） |
+| 本番 DB への全11ドキュメント投入 | **済**。読み戻し検証（deep-equal + コードポイント一致）11件すべて ok |
+| R2 バケット依存の除去 | **済**。公開ページが全ルート `force-dynamic` で ISR を使わないため、`open-next.config.ts` の `r2IncrementalCache` と `wrangler.jsonc` の `r2_buckets` / `WORKER_SELF_REFERENCE` を外した。**未作成だった R2 バケットが不要になり、デプロイの前提条件がひとつ消えた** |
+| 除去後の再検証 | `npx opennextjs-cloudflare build` 終了コード0 / preview（workerd）で `verify:text` 完全一致 / `/admin` は307 / `/admin/login` は200 |
+| 本番用シークレットの用意 | `.dev.vars.prod-reference`（gitignore・600）に `ADMIN_PASSWORD_PBKDF2`（**dev とは別の salt で生成**）と `ADMIN_SESSION_SECRET`（32バイト乱数・dev とは別値）を記録済み |
+
+### 実行前に利用者が決めること
+
+1. **公開してよいか。** 掲載情報は全て仮置き（`PLACEHOLDERS.md`）。会期・料金・登壇者・応募要項・連絡先は確定した事実ではない。
+   検索結果には出ない（`app/layout.tsx` の `metadata.robots` が `noindex, nofollow, noarchive`）が、
+   **URLを知っていれば誰でも閲覧できる**状態になる。
+2. **パスワードを変更するか。** 現在の値は辞書にある単語1語。レート制限はIP単位なので分散IPの総当たりには効かない。
+3. **費用。** Workers の無料枠を超える場合の課金と、Turso の rows read 上限（starter プラン 500M/月）。
+
+### 実行する場合の手順（未実行）
+
+```bash
+npm run deploy                    # opennextjs-cloudflare build && deploy
+# デプロイでWorkerが作られたあとにシークレットを入れる（値は .dev.vars.prod-reference から）
+npx wrangler secret put TURSO_DATABASE_URL
+npx wrangler secret put TURSO_AUTH_TOKEN
+npx wrangler secret put ADMIN_PASSWORD_PBKDF2
+npx wrangler secret put ADMIN_SESSION_SECRET
+npm run deploy                    # シークレット反映後にもう一度
+```
+
+**シークレットを入れる前の状態でも公開ページは表示される**（`lib/content/load.ts` が同梱JSONへ
+フォールバックする）。管理画面は `ADMIN_PASSWORD_PBKDF2` が無いと 500 を返して誰も入れない（fail-closed）。
+
+### 実行後に確認すること
+
+- 公開8ルートが 200 で、`BASE_URL=<本番URL> npm run verify:text` が完全一致
+- `/admin` が 307 で `/admin/login` へ、`/admin/login` が 200
+- 実際のパスワードでログインでき、ダッシュボードに11件出る
+- PBKDF2 100,000回が Cloudflare のCPU時間上限に収まるか（プラン依存。§9の実測値を参照）
