@@ -123,6 +123,28 @@ gemini-3.5-flash は指摘なし、codex が3件、Opus が1件:
 - 発行された Cookie で `/admin` と `/api/admin/documents` が 404（proxy 通過。ページ未実装のため404）
 - ログアウト: Cookie有り→200 + `aff_admin=; Max-Age=0`、CSRFヘッダ無し→400、Cookie無し→401（proxy が先に弾く）。失効後の `/admin` は307
 
+#### task_004b の3者レビュー結果（2026-08-14。採否と根拠）
+
+codex（`-s read-only` サンドボックス）と gemini-3.5-flash（scratchpad へ複製したソースに対して実行）を
+並行させた。**gemini はレビュー環境の不備で有効な指摘ゼロ、codex が有効な指摘2件**（どちらも採用し修正）。
+
+| 指摘 | 出所 | 採否 |
+|---|---|---|
+| **レート制限の失敗回数更新が非アトミック。** `SELECT failures` → `+1` → `UPDATE` の順で書いていたため、並行した誤パスワードリクエストが同じ値を読んで同じ値を書き戻し、失敗回数が失われてロックを回避できる | codex（major） | **採用・修正**。`INSERT … ON CONFLICT DO UPDATE SET failures = login_attempts.failures + 1, locked_until = CASE WHEN … END RETURNING failures` の1文に置き換えた |
+| **DB のクエリ例外が fail-closed になっていない。** `checkRateLimit` / `recordLoginFailure` は接続不可（クライアントが `null`）だけを見ており、`execute()` が投げる例外は Route Handler まで伝播して 500 になる | codex（major） | **採用・修正**。両方を `try/catch` で包み、例外時は `{ locked: true }` を返すようにした。`clearLoginAttempts` は認証成立後の後始末なので例外を握りつぶす |
+| logout が存在しない `@/lib/admin/session` を import しており、ビルド不能 | codex（blocker） | **却下（誤検出）。私のレビュー環境の不備**。レビュー用に複製したスナップショットに、task_004c で作業中だった logout の変更が混ざり、かつ `session.ts` を除外していたため、存在しない import に見えていた |
+| ログインページが指示書どおり `useSearchParams` + `Suspense` になっていない | gemini（高） | **却下**。指示書のその設計が誤りで、静的プリレンダリングで `<form>` がHTMLに出ない問題を起こしていた。サーバ側で `searchParams` を読む形に直したのが正しい（§1 の task_004b 付記） |
+| `lib/db.ts` が指示書の `@libsql/client/web` ではなく `/http` を使っている | gemini（低） | **却下（記録済み）**。workerd 向けバンドルが `@libsql/isomorphic-ws` を解決できない問題への対応で、意図的な変更。§9 に記録済み |
+
+修正後に Opus が独立実測した結果:
+
+| 確認 | 結果 |
+|---|---|
+| 逐次6回の誤パスワード | 1〜4回目 401 / 5・6回目 429。DBの `failures` = 5 |
+| **並行10リクエスト** | 4本が401・6本が429。**DBの `failures` = 10**（1件も取りこぼしていない＝アトミック） |
+| **`TURSO_AUTH_TOKEN` を無効値にした状態** | 誤パスワード・正パスワードとも **429**（500ではない＝fail-closed）。公開面 `/tickets` は 200 |
+| `npx tsc --noEmit` / `npm run build` / `npm run verify:text` | 終了コード0 / 完全一致。lint は 6件のまま |
+
 **`Secure` がローカルの http でも付く**点は仕様どおりでない可能性がある。実装は
 `process.env.NODE_ENV === "production"` で分岐しているが、`next start` は NODE_ENV=production で動くため
 ローカル検証でも `Secure` が付く（計画 §9.1 の「localhost の http 検証で Cookie が落ちる事故を避ける」
