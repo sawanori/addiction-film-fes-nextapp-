@@ -79,6 +79,16 @@ export default function FieldEditor({
   onChange: ChangeHandler;
   depth?: number;
 }) {
+  // 最上位は「いま選ばれているセクション」だけが表示されるので、折りたたまずカードの見出しにする
+  const topHeader = (extra?: React.ReactNode) => (
+    <div className="adm__section-head">
+      <h2 className="adm__section-title">
+        {field.label}
+        {extra}
+      </h2>
+      {field.hint ? <p className="adm__section-hint">{field.hint}</p> : null}
+    </div>
+  );
   /* ---------------- グループ ---------------- */
   if (field.type === "group") {
     const record = (value ?? {}) as Record<string, unknown>;
@@ -104,13 +114,10 @@ export default function FieldEditor({
     // 最上位は折りたためるカード、入れ子は控えめな囲みにする
     if (depth === 0) {
       return (
-        <details className="adm__section" open>
-          <summary>
-            {field.label}
-            {field.hint ? <span className="adm__summary-hint">{field.hint}</span> : null}
-          </summary>
+        <section className="adm__section">
+          {topHeader()}
           <div className="adm__section-body">{body}</div>
-        </details>
+        </section>
       );
     }
 
@@ -233,14 +240,10 @@ export default function FieldEditor({
 
     if (depth === 0) {
       return (
-        <details className="adm__section" open>
-          <summary>
-            {field.label}
-            <span className="adm__count">{items.length}件</span>
-            {field.hint ? <span className="adm__summary-hint">{field.hint}</span> : null}
-          </summary>
+        <section className="adm__section">
+          {topHeader(<span className="adm__count">{items.length}件</span>)}
           <div className="adm__section-body">{body}</div>
-        </details>
+        </section>
       );
     }
 

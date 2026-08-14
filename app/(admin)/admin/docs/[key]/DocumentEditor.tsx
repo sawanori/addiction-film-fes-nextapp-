@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { DocumentManifest } from "@/lib/content/manifest-core";
 import FieldEditor from "./FieldEditor";
@@ -32,6 +32,13 @@ function formatDateTime(iso: string): string {
   return iso.replace("T", " ").slice(0, 16);
 }
 
+/** セクションに入力欄がいくつあるか（目次に出す）。 */
+function countInputs(field: import("@/lib/content/manifest-core").Field): number {
+  if (field.type === "group") return field.fields.reduce((sum, f) => sum + countInputs(f), 0);
+  if (field.type === "array") return countInputs(field.item);
+  return 1;
+}
+
 export default function DocumentEditor({
   docKey,
   label,
@@ -52,6 +59,7 @@ export default function DocumentEditor({
   publicPath: string | null;
 }) {
   const [data, setData] = useState<unknown>(initialData);
+  const [activeSection, setActiveSection] = useState<string>(manifest.fields[0]?.path ?? "");
   const [revision, setRevision] = useState(initialRevision);
   const [revisions, setRevisions] = useState<Revision[]>(initialRevisions);
   const [dirty, setDirty] = useState(false);
@@ -70,6 +78,19 @@ export default function DocumentEditor({
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
+
+  // どのセクションを直したかを目次に出す（長いドキュメントで迷子にならないように）
+  const changedSections = useMemo(() => {
+    const before = (initialData ?? {}) as Record<string, unknown>;
+    const after = (data ?? {}) as Record<string, unknown>;
+    const changed = new Set<string>();
+    for (const field of manifest.fields) {
+      if (JSON.stringify(before[field.path]) !== JSON.stringify(after[field.path])) {
+        changed.add(field.path);
+      }
+    }
+    return changed;
+  }, [data, initialData, manifest.fields]);
 
   const handleChange = (path: string, value: unknown) => {
     setData((current: unknown) => setAtPath(current, path, value));
@@ -210,20 +231,53 @@ export default function DocumentEditor({
         <p className="adm__note">
           {description}
           <br />
-          見出しをクリックすると開閉できます。文字を直したら右上の「保存する」を押してください。
+          左の一覧から直したい部分を選んでください。文字を直したら右上の「保存する」を押します。
           保存するたびに履歴が残るので、いつでも前の内容に戻せます。
         </p>
 
-        <div className="adm__form">
-          {manifest.fields.map((field) => (
-            <FieldEditor
-              key={field.path}
-              field={field}
-              value={record[field.path]}
-              path={field.path}
-              onChange={handleChange}
-            />
-          ))}
+        <div className="adm__layout">
+          <nav className="adm__rail" aria-label="編集する部分">
+            <p className="adm__rail-title">このページの構成</p>
+            <ul className="adm__rail-list">
+              {manifest.fields.map((field) => {
+                const isActive = field.path === activeSection;
+                const count =
+                  field.type === "array" && Array.isArray(record[field.path])
+                    ? `${(record[field.path] as unknown[]).length}件`
+                    : `${countInputs(field)}項目`;
+                return (
+                  <li key={field.path}>
+                    <button
+                      type="button"
+                      className={isActive ? "adm__rail-item adm__rail-item--on" : "adm__rail-item"}
+                      onClick={() => setActiveSection(field.path)}
+                      aria-current={isActive ? "true" : undefined}
+                    >
+                      <span className="adm__rail-label">{field.label}</span>
+                      <span className="adm__rail-count">{count}</span>
+                      {changedSections.has(field.path) ? (
+                        <span className="adm__rail-dot" title="未保存の変更があります" />
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          <div className="adm__form">
+            {manifest.fields
+              .filter((field) => field.path === activeSection)
+              .map((field) => (
+                <FieldEditor
+                  key={field.path}
+                  field={field}
+                  value={record[field.path]}
+                  path={field.path}
+                  onChange={handleChange}
+                />
+              ))}
+          </div>
         </div>
 
         <h2 className="adm__h2">変更の履歴</h2>
