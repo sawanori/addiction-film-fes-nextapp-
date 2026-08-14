@@ -1,0 +1,35 @@
+.adm {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.adm__login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 2rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.adm__field {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.adm__button {
+  width: 100%;
+  padding: 0.75rem;
+}
+
+.adm__error {
+  color: #b00020;
+  margin-bottom: 1rem;
+}

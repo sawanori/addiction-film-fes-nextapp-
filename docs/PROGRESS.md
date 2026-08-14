@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-14 / ブランチ `main` / 最新コミット `2bff7d9`
+最終更新: 2026-08-14 / ブランチ `main` / 最新コミットは本文書を含む task_004b 実装コミット
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -31,7 +31,7 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tic
 | task_008 SiteHeader / SiteFooter（公開面コンテンツ駆動化 完了） | 完了（codex実装+kimiレビュー） | `cce4f57` |
 | task_003 OpenNext / wrangler 導入 | 完了 | `cbf8198` |
 | task_004a 認証コア（`lib/admin/auth.ts` + `proxy.ts`） | 完了 | `2bff7d9` |
-| task_004b ログイン画面 / login・logout API / レート制限 | 未着手 | — |
+| task_004b ログイン画面 / login・logout API / レート制限 | 完了（`next start` 上で検証済み。**Workers へのデプロイは §9 の未決事項が前提**） | 本コミット |
 | task_010 公開ページのDB読み出し切替 | 未着手（要: terms/privacy/news/about/index/programme/site の投入） | — |
 | task_011 manifest + 編集網羅性の検証 | 未着手 | — |
 | task_012 管理API | 未着手 | — |
@@ -96,6 +96,36 @@ gemini-3.5-flash は指摘なし、codex が3件、Opus が1件:
 
 `/admin/login` は現状404である（004b で作る）。修正計画書は `docs/plans/tasks/task_004a-fix.md`。
 
+### task_004b完了にあたっての付記（2026-08-14追記）
+
+作ったのは8ファイル（`lib/db.ts` / `lib/admin/rate-limit.ts` / `app/api/admin/{login,logout}/route.ts` /
+`app/(admin)/` の layout・admin.css・login ページ2つ）。指示書は `docs/plans/tasks/task_004b.md`。
+
+**指示書どおりに実装したらログイン画面のHTMLが空になり、実装担当が正しく停止した。** 原因は
+`useSearchParams()` を静的プリレンダリング対象のページで使ったこと。HTML には
+`<template data-dgst="BAILOUT_TO_CLIENT_SIDE_RENDERING">` だけが入り、`<form>` が出ない。
+**`next` クエリの読み取りをサーバ（`page.tsx` の `searchParams`）へ移して解決**した。
+オープンリダイレクト検証もサーバ側へ移ったので防御としても素直になった。
+
+検証は Opus が `next start` 上で独立実行した。**平文パスワードを持たない問題は、`scripts/hash-password.mjs`
+で作った使い捨てパスワードのハッシュを `ADMIN_PASSWORD_PBKDF2` に環境変数で上書きして回避した**
+（Node の `--env-file` は既存の環境変数を上書きしないことを実測して確認済み）。これにより
+**正常系ログインまで含めて機械的に検証できた**:
+
+- `GET /admin/login` 200・`<form>` と `type="password"` が各1件
+- `next=https://evil.example` と `next=//evil.example` はどちらも採用されない
+- CSRF: `x-aff-admin` 無し / `Content-Type: text/plain` / `Origin` 不一致 / body が非JSON / `password` 欠落 → すべて400。`Origin` 一致は通過して401
+- レート制限: 1〜4回目 401、5回目 429 `{"error":"locked","retryAfter":900}`、ロック中は**正しいパスワードでも429**
+- 正パスワード: 200 + `Set-Cookie: aff_admin=…; Path=/; Max-Age=43200; Secure; HttpOnly; SameSite=lax` + `Cache-Control: no-store`。成功で `login_attempts` の行が消える
+- 発行された Cookie で `/admin` と `/api/admin/documents` が 404（proxy 通過。ページ未実装のため404）
+- ログアウト: Cookie有り→200 + `aff_admin=; Max-Age=0`、CSRFヘッダ無し→400、Cookie無し→401（proxy が先に弾く）。失効後の `/admin` は307
+
+**`Secure` がローカルの http でも付く**点は仕様どおりでない可能性がある。実装は
+`process.env.NODE_ENV === "production"` で分岐しているが、`next start` は NODE_ENV=production で動くため
+ローカル検証でも `Secure` が付く（計画 §9.1 の「localhost の http 検証で Cookie が落ちる事故を避ける」
+という意図は満たしていない）。ブラウザは http://localhost を secure context として扱うため実害は
+出ない見込みだが、未確認である。
+
 ## 2. 検証の現状（毎コミットで確認しているもの）
 
 ```
@@ -156,12 +186,10 @@ node --env-file=.dev.vars node_modules/next/dist/bin/next start -p 3111
 
 ## 5. 次にやること
 
-コンテンツ駆動化（task_005〜008）・task_003（OpenNext / wrangler 導入）・task_004a（認証コア）が完了した。
-次の候補は次の3つ:
+コンテンツ駆動化（task_005〜008）・task_003（OpenNext / wrangler 導入）・task_004（認証、a と b の両方）が
+完了した。**次の一手は §9 の未決事項（`proxy.ts` を廃止するか、Cloudflare をやめるか）の決着**であり、
+それが決まるまで task_014（本番反映）には進めない。DB 側の作業は影響を受けないので並行して進められる:
 
-- **task_004b**: ログイン画面（`app/(admin)/`）・`/api/admin/login|logout`・`lib/admin/rate-limit.ts`。
-  004a の認証コアが揃っているので、これでログインが通るようになる。あわせて PBKDF2 100,000回が
-  Cloudflare Workers の CPU 時間上限に収まるかを preview で実測する（`docs/implementation-plan.md` §9.1 の宿題）
 - **task_009残り**: `content/` の未投入9件（`about` / `films` / `index` / `news` / `privacy` / `programme` /
   `site` / `terms` / `timetable`）を Turso へ投入する。**従来「7件」と書いていたのは誤りで、
   `films` と `timetable` が漏れていた。** task_010の前提
@@ -227,3 +255,45 @@ Cookie 検証（自作の署名Cookieを使う）までである。
 実装完了後の品質チェックは Opus / codex（`codex-cli 0.139.0`）/ gemini（CLI `0.38.1`、
 モデルは `gemini-3.5-flash`。`gemini-3.5-pro` と `gemini-3-pro` は404で存在しない）の3者で行う
 （`docs/takeover-plan.md` §7）。
+
+
+## 9. Cloudflare へデプロイできない問題（task_004b で判明。2026-08-14）
+
+**`proxy.ts` を置いたままでは `opennextjs-cloudflare build` が失敗する。** 実測した事実だけを書く。
+
+```
+ERROR Node.js middleware is not currently supported. Consider switching to Edge Middleware.
+（npx opennextjs-cloudflare build → 終了コード1）
+```
+
+- 原因は Next 16 の仕様変更。`node_modules/next/dist/docs/.../proxy.md` の221-223行に
+  **「Proxy は Node.js ランタイムが既定。`runtime` 設定は Proxy では使えず、指定するとエラーになる」**、
+  774行の変更履歴に「v16.0.0 Middleware は非推奨となり Proxy へ改名。Proxy は Node.js ランタイムが既定」
+  と明記されている。**つまり Next 16 では proxy を edge ランタイムで動かす手段が無い。**
+- `@opennextjs/cloudflare` 側は `dist/cli/build/utils/middleware.js` で
+  `functions-config-manifest.json` の `/_middleware` を見て Node middleware を検出し、
+  `build.js:67` で `process.exit(1)` する。ソースにも「Node middleware are not supported on
+  Cloudflare yet」とコメントがある。**`npm view @opennextjs/cloudflare dist-tags` は `latest: 1.20.2` で、
+  導入済みの版が最新。バージョンを上げて解決する道は現時点で無い。**
+- `middleware.ts` へ戻す案も無効。`middleware.md` は「All functionality remains the same — only the
+  file and export names have changed」と書いており、v16 では規約名が違うだけで同じく Node ランタイムになる。
+
+**対応方針は未決。** 選択肢は (a) `proxy.ts` を廃止して認証を app 層（管理画面のページ/レイアウトと
+各 `/api/admin/*` ハンドラ）で行う、(b) Cloudflare Workers をやめて Node ホストへ移す、の2つ。
+計画 §9 は元々「API ハンドラ側でも同一検証を行う（defense in depth）」と決めているため、(a) は
+その二重化のうち CDN 側を落とす形になる。利用者の判断を待つ。
+
+### 併せて判明した2件（どちらも実測）
+
+1. **`@libsql/client` を workerd 向けにバンドルすると解決に失敗する。**
+   `Could not resolve "@libsql/isomorphic-ws"` … Next の standalone 出力が同パッケージの
+   `node.mjs` しかコピーせず、esbuild が workerd 条件の `web.mjs` を探して失敗する。
+   `next.config.ts` に次を足すとビルドが通ることを実測した（proxy.ts を外した状態で終了コード0）:
+   `outputFileTracingIncludes: { "**": ["./node_modules/@libsql/isomorphic-ws/web.mjs"] }`。
+   あわせて `lib/db.ts` は `@libsql/client/web` ではなく **`/http`** を使う（WebSocket を一切参照しない。
+   `libsql://` URL のまま `execute` と `batch` が動くことを Node で実測済み）。
+2. **PBKDF2 100,000回のコストは実測 約8.1ms（Node / V8、5回中央値）。**
+   workerd（`opennextjs-cloudflare preview`、proxy.ts を外してビルドしたもの）でのログイン1回の
+   往復は 初回 0.467s / 2回目 0.071s / 3回目 0.054s（Turso 東京への往復2回を含む）。
+   CSRF で弾く経路は 0.004s。**Cloudflare の CPU 時間上限に収まるかは契約プランに依存する**ため、
+   task_014 でプランを確認する。反復回数はハッシュ文字列に埋め込んであるので後から変更できる。
