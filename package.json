@@ -3,16 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
+    "dev": "next dev",
     "start": "next start",
     "lint": "eslint",
     "verify:text": "bash scripts/verify-text.sh",
     "db:migrate": "node scripts/db-migrate.mjs",
-    "db:seed": "node scripts/db-seed.mjs"
+    "db:seed": "node scripts/db-seed.mjs",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
+    "@opennextjs/cloudflare": "^1.20.2",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
@@ -24,6 +29,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "parse5": "^8.0.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.123.0"
   }
 }
