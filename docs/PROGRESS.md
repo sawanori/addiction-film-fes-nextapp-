@@ -1,6 +1,6 @@
 # /admin 管理画面：進捗記録
 
-最終更新: 2026-08-14 / ブランチ `main` / task_004b までがコミット済み（`146d72c`）
+最終更新: 2026-08-14 / ブランチ `main` / task_013 までコミット済み（`ddb32ee`）。残るは task_014（本番反映）のみ
 
 計画の全体像は `docs/implementation-plan.md`、タスク定義は `docs/task-list.json`、
 受け入れ条件は `docs/acceptance-checks.json`、レビューの採否は `docs/reviews/review-verdict.md` にある。
@@ -11,12 +11,12 @@
 ## 1. 現在地
 
 **公開8ページ全ページ + 共有ヘッダー/フッターのコンテンツ駆動化が完了**（task_005〜008）。
-Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tickets/legal）の投入まで完了
-（残り9ドキュメントは未投入。task_010着手前に投入が要る。内訳は §5）。
+Turso の dev/prod DB は作成・スキーマ適用・**全11ドキュメントの投入まで完了**（dev / prod 両方）。
 **task_003（OpenNext / wrangler 導入）も完了し、Cloudflare Workers 上（OpenNext preview / workerd）でも
 公開8ルートが baseline と完全一致することを実測済み**（task_004a の `proxy.ts` で一度ビルドが
 通らなくなったが、task_004c で解消した。経緯は §9）。
-認証・管理UI・本番デプロイは未着手。公開サイトの見た目と文言は**1文字も変わっていない**。
+**認証・管理API・管理画面UIまで完了し、公開ページはDB読み出しに切り替わった。残るは本番反映（task_014）だけ。**
+公開サイトの見た目と文言は**1文字も変わっていない**（`npm run verify:text` が毎コミットで完全一致）。
 
 | タスク | 状態 | コミット |
 |---|---|---|
@@ -33,11 +33,10 @@ Turso の dev/prod DB は作成・スキーマ適用・2ドキュメント（tic
 | task_003 OpenNext / wrangler 導入 | 完了 | `cbf8198` |
 | task_004a 認証コア（`lib/admin/auth.ts` + `proxy.ts`） | 完了 | `2bff7d9` |
 | task_004b ログイン画面 / login・logout API / レート制限 | 完了（`next start` 上で検証済み） | `146d72c` |
-| task_004c `proxy.ts` 廃止と認証の app 層移設（§9） | 完了。`opennextjs-cloudflare build` が終了コード0に戻った | 本コミット |
-| task_009残り `content/` 全11件を Turso へ投入 | 完了（読み戻し検証OK） | 本コミット |
-| task_010 公開ページのDB読み出し切替 | 完了（`next start` / workerd 双方で完全一致） | 本コミット |
-| task_011 manifest + 編集網羅性の検証 | 未着手 | — |
-| task_012 管理API | 未着手 | — |
+| task_004c `proxy.ts` 廃止と認証の app 層移設（§9） | 完了。`opennextjs-cloudflare build` が終了コード0に戻った | `c1fd860` |
+| task_009残り `content/` 全11件を Turso へ投入（dev / prod 両方） | 完了（読み戻し検証OK） | `c1fd860` / `f778298` |
+| task_010 公開ページのDB読み出し切替 | 完了（`next start` / workerd 双方で完全一致） | `063c6db` |
+| task_011 manifest + 編集網羅性の検証 | 完了（リーフ1078件すべて対応） | `bfc0657` |
 | task_012 管理API | 完了 | `32c5318` |
 | task_013 管理画面UI | 完了 | `ddb32ee` |
 | task_014 本番反映 | **デプロイ直前まで準備済み。実行は利用者の判断待ち**（§10） | — |
