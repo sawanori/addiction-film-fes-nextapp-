@@ -1,35 +1,283 @@
+/*
+ * 管理画面のスタイル。全セレクタを .adm 配下に置く。
+ * app/globals.css には1行も足さない（公開ページの見た目に触れないため）。
+ * globals.css のクラス（.btn 等）も参照しない。
+ */
+
 .adm {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
+  padding: 1.5rem;
   box-sizing: border-box;
   font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1c1c1c;
+  background: #f6f6f6;
 }
 
+/* ログイン画面だけ中央寄せ */
 .adm__login-card {
   width: 100%;
   max-width: 360px;
+  margin: 12vh auto 0;
   padding: 2rem;
-  border: 1px solid #ccc;
+  background: #fff;
+  border: 1px solid #ddd;
   border-radius: 8px;
+}
+
+.adm__page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.adm__bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.adm__title {
+  margin: 0.25rem 0;
+  font-size: 1.25rem;
+}
+
+.adm__meta {
+  margin: 0;
+  color: #666;
+  font-size: 0.85em;
+}
+
+.adm__save {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.adm__save .adm__field {
+  width: 220px;
+  margin: 0;
 }
 
 .adm__field {
   display: block;
   width: 100%;
   box-sizing: border-box;
-  padding: 0.5rem;
-  margin-bottom: 1rem;
+  padding: 0.45rem 0.5rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+}
+
+.adm__field--area {
+  resize: vertical;
+}
+
+.adm__field--href {
+  max-width: 220px;
 }
 
 .adm__button {
-  width: 100%;
-  padding: 0.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #1c1c1c;
+  border-radius: 4px;
+  background: #1c1c1c;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.adm__button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.adm__button--ghost {
+  background: #fff;
+  color: #1c1c1c;
+}
+
+.adm__mini {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.adm__mini--danger {
+  border-color: #d99;
+  color: #b00020;
+}
+
+.adm__link {
+  color: #0645ad;
+  margin-right: 0.75rem;
 }
 
 .adm__error {
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+  border: 1px solid #e0b4b4;
+  border-radius: 4px;
+  background: #fdf3f3;
   color: #b00020;
-  margin-bottom: 1rem;
+}
+
+.adm__status {
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+  border: 1px solid #b7d7b7;
+  border-radius: 4px;
+  background: #f2f9f2;
+}
+
+.adm__table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.adm__table th,
+.adm__table td {
+  padding: 0.5rem;
+  border: 1px solid #e2e2e2;
+  text-align: left;
+  vertical-align: top;
+}
+
+.adm__table th {
+  background: #f0f0f0;
+  font-weight: 700;
+}
+
+.adm__actions {
+  white-space: nowrap;
+}
+
+.adm__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.adm__group {
+  padding: 0.75rem 1rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.adm__group--array {
+  background: #fafafa;
+}
+
+.adm__legend {
+  padding: 0 0.35rem;
+  font-weight: 700;
+  font-size: 0.95em;
+}
+
+.adm__count {
+  margin-left: 0.5rem;
+  color: #666;
+  font-weight: 400;
+  font-size: 0.85em;
+}
+
+.adm__row {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.adm__row--check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.adm__label {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: #444;
+  font-size: 0.85em;
+}
+
+.adm__item {
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.adm__item-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.adm__index {
+  margin-right: auto;
+  color: #666;
+  font-size: 0.85em;
+}
+
+.adm__inline {
+  border: 1px solid #e2e2e2;
+  border-radius: 4px;
+  padding: 0.4rem;
+  background: #fff;
+}
+
+.adm__inline-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.adm__inline-row .adm__field {
+  margin-bottom: 0;
+}
+
+.adm__inline-add {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.adm__tag {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: #eee;
+  color: #555;
+  font-size: 0.75em;
+  white-space: nowrap;
+}
+
+.adm__inline-br {
+  flex: 1;
+  color: #888;
+  font-size: 0.85em;
+}
+
+.adm__thumb {
+  max-width: 160px;
+  height: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.adm__history {
+  margin-top: 2rem;
 }

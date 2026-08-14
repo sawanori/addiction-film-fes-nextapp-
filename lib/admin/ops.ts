@@ -148,6 +148,83 @@ function normalizeDeep(value: unknown): unknown {
 }
 
 /* ------------------------------------------------------------------ *
+ * ドキュメント全体の検証（管理画面UIの保存経路）
+ * ------------------------------------------------------------------ */
+
+/**
+ * 送られてきたドキュメント全体を manifest と突き合わせる。
+ *
+ * 管理画面のフォームは「その場で編集した結果のドキュメント全体」を送る（差分 ops を
+ * クライアント側で組み立てると、配列の挿入・並べ替えで添字がずれた ops を作りうるため）。
+ * そのぶん検証はここで全リーフに対して行う:
+ *
+ * - manifest に無いパスがあれば拒否（DOM構造ごと差し替える編集を防ぐ）
+ * - 型が違えば拒否（真偽値の欄に文字列、など）
+ * - inline は許可タグ5種のみ
+ */
+export function validateDocument(doc: unknown, manifest: DocumentManifest): OpError[] {
+  const fields = indexFields(manifest);
+  const errors: OpError[] = [];
+
+  const walk = (value: unknown, path: string): void => {
+    const field = path === "" ? undefined : fields.get(normalizeArrayPath(path));
+
+    if (field?.type === "inline") {
+      if (!isValidInline(value)) {
+        errors.push({ path, message: "許可タグ（br/strong/em/b/span/link）以外を含みます" });
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      if (path !== "" && field?.type !== "array") {
+        errors.push({ path, message: "manifest では配列ではありません" });
+        return;
+      }
+      value.forEach((item, i) => walk(item, path ? `${path}.${i}` : String(i)));
+      return;
+    }
+
+    if (isContainer(value)) {
+      if (path !== "" && field && field.type !== "group") {
+        errors.push({ path, message: "manifest ではオブジェクトではありません" });
+        return;
+      }
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        walk(v, path ? `${path}.${k}` : k);
+      }
+      return;
+    }
+
+    // ここまで来たらリーフ
+    if (!field) {
+      errors.push({ path, message: `manifest に無いパスです（${normalizeArrayPath(path)}）` });
+      return;
+    }
+    if (field.type === "boolean") {
+      if (typeof value !== "boolean") errors.push({ path, message: "真偽値が必要です" });
+      return;
+    }
+    if (field.type === "text" || field.type === "textarea" || field.type === "image") {
+      if (typeof value !== "string") errors.push({ path, message: "文字列が必要です" });
+      return;
+    }
+    errors.push({ path, message: `${field.type} フィールドに値を直接置けません` });
+  };
+
+  walk(doc, "");
+  return errors.slice(0, 50);
+}
+
+/** 具体パス（添字つき）を manifest の正規化パスへ。`normalizePath` の別名。 */
+const normalizeArrayPath = normalizePath;
+
+/** 保存前に改行コードだけ揃える（trim も正規化もしない。§8.4）。 */
+export function normalizeDocument(doc: unknown): unknown {
+  return normalizeDeep(doc);
+}
+
+/* ------------------------------------------------------------------ *
  * 適用
  * ------------------------------------------------------------------ */
 

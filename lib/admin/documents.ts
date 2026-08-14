@@ -128,3 +128,24 @@ export async function writeDocument(
     return { ok: false, reason: "db" };
   }
 }
+
+/** ダッシュボード用の一覧。 */
+export async function listDocuments(): Promise<
+  Array<{ key: string; revision: number; updatedAt: string }> | "db_error"
+> {
+  const client = getDbClient();
+  if (!client) return "db_error";
+
+  try {
+    const { rows } = await client.execute(
+      "SELECT key, revision, updated_at FROM content_documents ORDER BY key"
+    );
+    return rows.map((row) => ({
+      key: String(row.key),
+      revision: Number(row.revision),
+      updatedAt: String(row.updated_at),
+    }));
+  } catch {
+    return "db_error";
+  }
+}
