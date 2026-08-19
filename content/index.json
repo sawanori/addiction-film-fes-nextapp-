@@ -31,18 +31,43 @@
       }
     ],
     "slidesLabel": "キービジュアル",
-    "edition": ["1st Edition", "All Films with Talk Show"],
-    "titleLines": ["Turn Bias", "into Dialogue"],
+    "edition": [
+      "1st Edition",
+      "All Films with Talk Show"
+    ],
+    "titleLines": [
+      "Turn Bias",
+      "into Dialogue"
+    ],
     "jp": "映画の力で、偏見を対話に変える。",
     "meta": [
-      { "term": "Dates", "desc": "2026年10月11日（日）— 12日（月・祝）" },
-      { "term": "Venue", "desc": "よみうりホール（東京・有楽町）" },
-      { "term": "Format", "desc": "全作品にトークショーを併催" },
-      { "term": "Tickets", "desc": "1日券 3,000円／2日券 5,000円" }
+      {
+        "term": "Dates",
+        "desc": "2026年10月11日（日）— 12日（月・祝）"
+      },
+      {
+        "term": "Venue",
+        "desc": "よみうりホール（東京・有楽町）"
+      },
+      {
+        "term": "Format",
+        "desc": "全作品にトークショーを併催"
+      },
+      {
+        "term": "Tickets",
+        "desc": "1日券 3,000円／2日券 5,000円"
+      }
     ],
     "actions": [
-      { "label": "上映とトークを見る", "href": "/programme" },
-      { "label": "チケット情報", "href": "/tickets", "variant": "light" }
+      {
+        "label": "上映とトークを見る",
+        "href": "/programme"
+      },
+      {
+        "label": "チケット情報",
+        "href": "/tickets",
+        "variant": "light"
+      }
     ]
   },
   "quick": {
@@ -70,11 +95,25 @@
     ]
   },
   "statement": {
-    "title": ["Why", { "t": "br" }, "Now"],
-    "link": { "label": "映画祭について", "href": "/about" },
+    "title": [
+      "Why",
+      {
+        "t": "br"
+      },
+      "Now"
+    ],
+    "link": {
+      "label": "映画祭について",
+      "href": "/about"
+    },
     "lead": [
       "わたしたちは、",
-      { "t": "em", "c": ["説教くさい啓発感を排除します"] },
+      {
+        "t": "em",
+        "c": [
+          "説教くさい啓発感を排除します"
+        ]
+      },
       "。映画という極上のストーリーテリングを通じることで、心のバリアを取り払い、依存症を自分事として考えるきっかけをつくる。それがこの映画祭の役割です。まず届けたいのは、依存症にまだ関心のない「一般の映画ファン」。作品を観に来ていただき、帰るときには誰かと話したくなっている。その2日間を設計します。"
     ],
     "note": {
@@ -88,7 +127,10 @@
       "title": "3 Approaches",
       "jp": "映画祭を成功に導く3つのアプローチ"
     },
-    "link": { "label": "くわしく", "href": "/about#approach" },
+    "link": {
+      "label": "くわしく",
+      "href": "/about#approach"
+    },
     "cards": [
       {
         "no": "01",
@@ -118,16 +160,32 @@
     ]
   },
   "films": {
-    "head": { "eyebrow": "Line-up", "title": "Films", "jp": "上映作品" },
-    "link": { "label": "作品の詳細", "href": "/programme#films" }
+    "head": {
+      "eyebrow": "Line-up",
+      "title": "Films",
+      "jp": "上映作品"
+    },
+    "link": {
+      "label": "作品の詳細",
+      "href": "/programme#films"
+    }
   },
   "format": {
     "head": {
       "eyebrow": "Format",
-      "title": ["1 Film,", { "t": "br" }, "1 Talk"],
+      "title": [
+        "1 Film,",
+        {
+          "t": "br"
+        },
+        "1 Talk"
+      ],
       "jp": "映画1本ごとに、トークショーを。"
     },
-    "link": { "label": "タイムテーブル", "href": "/programme" },
+    "link": {
+      "label": "タイムテーブル",
+      "href": "/programme"
+    },
     "boxes": [
       {
         "h": "観る",
@@ -151,14 +209,23 @@
         "no": "A",
         "t": "まず届けたいのは、依存症にまだ関心のない「一般の映画ファン」",
         "d": "当事者や支援者に閉じたイベントにはしません。映画目当てで来た人が、帰り道に誰かと話している。その状態をつくることを最優先の設計目標にします。",
-        "meta": ["Target"]
+        "meta": [
+          "Target"
+        ]
       },
       {
         "no": "B",
         "t": "2日間を通した進行役を置きます",
         "d": "上映とトークをぶつ切りにせず、1本の流れとして届けるために、フェスティバル・ナビゲーターが2日間を通して進行します。",
         "meta": [
-          { "t": "link", "href": "#navigator", "cls": "arrow", "c": ["ナビゲーター"] }
+          {
+            "t": "link",
+            "href": "#navigator",
+            "cls": "arrow",
+            "c": [
+              "ナビゲーター"
+            ]
+          }
         ],
         "delay": ".06s"
       }
@@ -171,24 +238,52 @@
       "alt": "フェスティバル・ナビゲーターのよしひろまさみち氏"
     },
     "eyebrow": "Festival Navigator",
-    "title": ["Guide", { "t": "br" }, "the Two Days"],
+    "title": [
+      "Guide",
+      {
+        "t": "br"
+      },
+      "the Two Days"
+    ],
     "k": "映画ライター・編集者",
     "name": "よしひろまさみち",
     "en": "Masamichi Yoshihiro",
     "lead": "2日間を通して、進行役を務めます。作品の見どころを映画ファンの言葉で伝え、上映からトークまでをひとつづきの時間にしていきます。",
-    "d": "上映後のトークを「啓発の時間」にしてしまうと、この映画祭が最初に決めた「説教くさい啓発感を排除する」という約束が崩れます。必要なのは、あくまで映画の話の続きとして場を進められる人でした。映画・ドラマを専門に長く書き、テレビの生放送で作品を紹介し、イベントの登壇も数多くこなしてきたよしひろまさみち氏に、その役をお願いしました。",
+    "d": "映画はあらゆる不当な偏見や差別にNOをたたきつけることができ、さらに観客を「分かった気」にさせてくれるるメディア芸術。が、そこから掘り下げるかどうかは観る人次第です。映画祭の最大のメリットは、その場で同じ作品を観た人たちと時間と情報を共有できるところにあります。この映画祭をきっかけに思索にふけり、人と対話を重ね、新たな見地に導くお手伝いができれば幸いです。",
     "facts": [
-      { "b": "Profile", "text": "1972年東京都生まれ。法政大学文学部卒業。雑誌編集者を経てフリーランスのライター・編集者に。現在は映画・ドラマを専門に執筆。" },
-      { "b": "Field", "text": "英語圏の洋画、アジア映画、日本映画、海外ドラマ" },
-      { "b": "Member", "text": "日本映画ペンクラブ会員／日本アカデミー賞協会会員" },
-      { "b": "Media", "text": "『キネマ旬報』『SPA!』『oz magazine』『otona MUSE』『ELLE』『VOGUE JAPAN』ほかで映画レビュー・インタビューを連載" },
-      { "b": "On Air", "text": "2012年より日本テレビ系『スッキリ!!』の映画紹介に出演" }
+      {
+        "b": "Profile",
+        "text": "1972年東京都生まれ。法政大学文学部卒業。雑誌編集者を経てフリーランスのライター・編集者に。現在は映画・ドラマを専門に執筆。"
+      },
+      {
+        "b": "Field",
+        "text": "英語圏の洋画、アジア映画、日本映画、海外ドラマ"
+      },
+      {
+        "b": "Member",
+        "text": "日本映画ペンクラブ会員／日本アカデミー賞協会会員"
+      },
+      {
+        "b": "Media",
+        "text": "『キネマ旬報』『SPA!』『oz magazine』『otona MUSE』『ELLE』『VOGUE JAPAN』ほかで映画レビュー・インタビューを連載"
+      },
+      {
+        "b": "On Air",
+        "text": "2012年より日本テレビ系『スッキリ!!』の映画紹介に出演"
+      }
     ],
     "note": "※ プロフィールは公開情報をもとに構成した仮のテキストです。公開前にご本人・所属先の確認をお願いします。"
   },
   "news": {
-    "head": { "eyebrow": "Latest", "title": "News", "jp": "お知らせ" },
-    "link": { "label": "すべて見る", "href": "/news" },
+    "head": {
+      "eyebrow": "Latest",
+      "title": "News",
+      "jp": "お知らせ"
+    },
+    "link": {
+      "label": "すべて見る",
+      "href": "/news"
+    },
     "readLabel": "Read",
     "items": [
       {
@@ -218,15 +313,30 @@
   },
   "manifesto": {
     "mark": "“",
-    "t": ["映画の力で、", { "t": "br" }, "偏見を対話に変える。"],
+    "t": [
+      "映画の力で、",
+      {
+        "t": "br"
+      },
+      "偏見を対話に変える。"
+    ],
     "by": "Addiction International Film Festival"
   },
   "cta": {
     "t": "第1回を、ともに立ち上げてください。",
-    "link": { "label": "パートナー募集について", "href": "/about#partner" }
+    "link": {
+      "label": "パートナー募集について",
+      "href": "/about#partner"
+    }
   },
   "newsletter": {
-    "title": ["Stay in", { "t": "br" }, "the Loop"],
+    "title": [
+      "Stay in",
+      {
+        "t": "br"
+      },
+      "the Loop"
+    ],
     "note": "開催日程・会場・上映作品・チケット発売のお知らせをメールでお送りします。",
     "form": {
       "placeholder": "E-mail",
@@ -234,10 +344,26 @@
       "button": "Subscribe →"
     },
     "social": [
-      { "label": "IG", "ariaLabel": "Instagram", "href": "#" },
-      { "label": "X", "ariaLabel": "X", "href": "#" },
-      { "label": "YT", "ariaLabel": "YouTube", "href": "#" },
-      { "label": "NOTE", "ariaLabel": "note", "href": "#" }
+      {
+        "label": "IG",
+        "ariaLabel": "Instagram",
+        "href": "#"
+      },
+      {
+        "label": "X",
+        "ariaLabel": "X",
+        "href": "#"
+      },
+      {
+        "label": "YT",
+        "ariaLabel": "YouTube",
+        "href": "#"
+      },
+      {
+        "label": "NOTE",
+        "ariaLabel": "note",
+        "href": "#"
+      }
     ]
   }
 }
