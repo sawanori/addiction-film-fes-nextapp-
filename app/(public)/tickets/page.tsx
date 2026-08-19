@@ -1,6 +1,5 @@
 import { Fragment } from "react";
 import type { Metadata } from "next";
-import SmartLink from "@/components/SmartLink";
 import { styleVars } from "@/lib/style";
 import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
@@ -24,7 +23,7 @@ function boxStyle(box: Box, extra?: Record<string, string>) {
 
 export default async function TicketsPage() {
   const tickets = await getDocument("tickets");
-  const { head, price, novelty, faq } = tickets;
+  const { head, price, faq } = tickets;
 
   return (
     <>
@@ -85,61 +84,24 @@ export default async function TicketsPage() {
         </div>
       </section>
 
-      {/* ノベルティ */}
-      <section className="panel panel--wine" id="novelty">
+      {/* FAQ */}
+      <section className="panel panel--wine">
         <div className="panel__dots panel__dots--red" aria-hidden="true"></div>
         <div className="wrap">
           <div className="section__head">
             <div>
               <span className="eyebrow" style={{ color: "var(--red)" }}>
-                {novelty.head.eyebrow}
+                {faq.head.eyebrow}
               </span>
               <h2
                 className="display display--sm"
                 style={{ color: "var(--white)" }}
               >
-                {novelty.head.title}
+                {faq.head.title}
               </h2>
               <p className="jp-head" style={{ color: "var(--red)" }}>
-                {novelty.head.jp}
+                {faq.head.jp}
               </p>
-            </div>
-          </div>
-
-          <p className="panel__lead" style={{ maxWidth: "26ch" }}>
-            {renderInline(novelty.lead)}
-          </p>
-          <p className="panel__body">{novelty.body}</p>
-
-          <div className="cols-3" style={{ marginTop: "32px" }}>
-            {novelty.boxes.map((box) => (
-              <div
-                key={box.h}
-                className="box box--dark rise"
-                style={boxStyle(box, { borderColor: "var(--red)" })}
-              >
-                <h3 style={{ color: "var(--red)" }}>{box.h}</h3>
-                <p>{renderInline(box.p)}</p>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ marginTop: "28px" }}>
-            <SmartLink className="btn btn--light" href={novelty.cta.href}>
-              {novelty.cta.label}
-            </SmartLink>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="section">
-        <div className="wrap">
-          <div className="section__head">
-            <div>
-              <span className="eyebrow">{faq.head.eyebrow}</span>
-              <h2 className="display display--sm">{faq.head.title}</h2>
-              <p className="jp-head">{faq.head.jp}</p>
             </div>
           </div>
           <dl className="faq cols-2">

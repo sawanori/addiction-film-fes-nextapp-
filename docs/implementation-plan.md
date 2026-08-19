@@ -387,7 +387,7 @@ type Op =
 | `page.index` | `meta`（title/description）+ ヒーロー（eyebrow×2・タイトル 2 行・jp・`dl` 4 項目・ボタン 2 つ・slides 配列）+ 各セクション + 最新ニュース 4 件 + ナビゲーター領域 + ニュースレター領域 | `/` |
 | `page.about` | `meta` + 全セクション | `/about` |
 | `page.programme` | `meta` + 全セクション（films/timetable は別ドキュメント参照） | `/programme` |
-| `page.tickets` | `meta` + 料金表 2 行 + ボックス 3 つ + ノベルティ領域 + FAQ 6 組 | `/tickets` |
+| `page.tickets` | `meta` + 料金表 2 行 + ボックス 3 つ + FAQ 6 組（旧ノベルティ領域は2026年8月の企画取り下げにより削除。跡地は FAQ を暗い面へ移して継承） | `/tickets` |
 | `page.news` | `meta` + 記事 3 件 + アーカイブ 5 件 + プレス領域 | `/news` |
 | `page.privacy` | `meta` + 全 14 条 | `/privacy` |
 | `page.terms` | `meta` + 全 18 条 | `/terms` |

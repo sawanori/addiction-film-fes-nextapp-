@@ -7,7 +7,7 @@
 index.html       トップ
 about.html       映画祭について（背景・3つのアプローチ・開催概要・実行委員会・パートナー募集）
 programme.html   プログラム（上映とトーク・タイムテーブル・会場）
-tickets.html     チケット／ノベルティ／FAQ
+tickets.html     チケット／FAQ（旧ノベルティ節は2026年8月、企画取り下げにより削除）
 news.html        お知らせ／プレスルーム
 privacy.html     プライバシーポリシー
 terms.html       利用規約・来場規約（サイト／チケット／来場／取材）
@@ -189,7 +189,7 @@ content="noindex">` も入れてある。`sitemap.xml` のドメインは `https
 - **SiteHeader / SiteFooter** — 全8ページ共通のヘッダー・フッター。`app/layout.tsx` に配置。
   クライアントコンポーネント化して `usePathname()` で現在ページを判定し、変換元のページごとの差異を再現している：
   - ナビの `aria-current="page"`（about / programme / tickets / news のみ。index・法務3ページには無し）
-  - そのページ自身へのフラグメント付きリンクは `#…` 形式（例：about ページの「パートナー募集」は `#partner`、他ページは `/about#partner`）。フッターも同規則（programme の `#venue`、tickets の `#novelty`、news の `#press`）
+  - そのページ自身へのフラグメント付きリンクは `#…` 形式（例：about ページの「パートナー募集」は `#partner`、他ページは `/about#partner`）。フッターも同規則（programme の `#venue`、news の `#press`）。tickets の `#novelty` は、2026年8月にノベルティ企画が取り下げられフッターのリンクごと削除した
   - ユーティリティの「JA」リンクは各ページ自身の URL（`/`・`/about`…）
 - **SmartLink** — `#` 始まりの同一ページ内アンカーは素の `<a>`、それ以外の内部リンクは `next/link` に出し分けるラッパー。
 - **Films** — index / programme で完全同一の上映作品グリッド。唯一の差異（04「一瞬の楽園」のクレジットが index=短縮版／programme=全文）は `variant` prop で出し分け。

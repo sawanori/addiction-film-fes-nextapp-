@@ -241,7 +241,6 @@ const FIELD_LABELS: Record<string, [label: string, hint?: string]> = {
   format: ["開催形式"],
   guide: ["ご案内"],
   venue: ["会場"],
-  novelty: ["ノベルティ"],
   news: ["お知らせ"],
   films: ["上映作品"],
   hero: ["ファーストビュー"],

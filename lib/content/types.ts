@@ -76,13 +76,6 @@ export type TicketsDocument = {
     note: string;
     boxes: Box[];
   };
-  novelty: {
-    head: SectionHead;
-    lead: Inline;
-    body: string;
-    boxes: Box[];
-    cta: { label: string; href: string };
-  };
   faq: {
     head: SectionHead;
     /** 変換元は `.faq.cols-2` の中に列が2つあり、各列に3組ずつ入っている。 */
@@ -611,7 +604,7 @@ export type IndexDocument = {
 /** 「上映の考え方」の `.row-item` 1行。`title` は `<span class="small muted">`、`meta` は `<br>`・リンクを含む。 */
 export type ProgrammeGuideRow = {
   no: string;
-  /** 行全体に付く id（`talk` / `navigator` / `novelty-link`）。01には無い。 */
+  /** 行全体に付く id（`talk` / `navigator`）。01には無い。 */
   id?: string;
   title: Inline;
   desc: string;

@@ -58,3 +58,6 @@ next-env.d.ts
 .dev.vars.*
 /.wrangler/
 /.open-next/
+
+# 本番DBのバックアップ（本番データのコピーをリポジトリに含めない）
+/backups/

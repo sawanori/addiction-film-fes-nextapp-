@@ -176,7 +176,7 @@ export default async function Home() {
             </SmartLink>
           </div>
 
-          <div className="cols-3">
+          <div className="cols-2">
             {format.boxes.map((box) => (
               <div
                 key={box.h}

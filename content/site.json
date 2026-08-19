@@ -40,15 +40,14 @@
         "items": [
           { "label": "上映とトーク", "base": "/programme", "hash": "" },
           { "label": "会場", "base": "/programme", "hash": "#venue" },
-          { "label": "チケット", "base": "/tickets", "hash": "" },
-          { "label": "ノベルティ", "base": "/tickets", "hash": "#novelty" }
+          { "label": "チケット", "base": "/tickets", "hash": "" }
         ]
       },
       {
         "heading": "About",
         "items": [
           { "label": "映画祭について", "base": "/about", "hash": "" },
-          { "label": "3つのアプローチ", "base": "/about", "hash": "#approach" },
+          { "label": "2つのアプローチ", "base": "/about", "hash": "#approach" },
           { "label": "開催概要", "base": "/about", "hash": "#outline" },
           { "label": "実行委員会", "base": "/about", "hash": "#org" }
         ]

@@ -247,6 +247,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;}
 .panel--wine .panel__lead em{color:var(--red);}
 .panel--wine .panel__body,.panel--wine .muted{color:rgba(237,227,212,.72);}
 .panel--wine .table--dark th,.panel--wine .table--dark td{border-color:rgba(237,227,212,.28);}
+/* ノベルティ帯を廃したぶん、FAQ をこの面に載せる。dt/dd は明るい面向けの
+   指定（--rule / --mute-ink）のままだと沈むので、この面でだけ振り直す */
+.panel--wine .faq dt{color:var(--white);border-top-color:rgba(237,227,212,.28);}
+.panel--wine .faq dd{color:rgba(237,227,212,.72);}
+.panel--wine .section__head .display{color:var(--white);}
 /* トンボ（トリムマーク）。刷版らしさを出す装飾 */
 .panel::before,.panel::after{
   content:"";position:absolute;width:26px;height:26px;pointer-events:none;opacity:.5;
