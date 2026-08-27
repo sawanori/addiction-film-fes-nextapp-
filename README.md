@@ -3,6 +3,10 @@
 新規に立ち上げる日本の映画祭のためのサイト初稿。デザイン言語は
 [locarnofestival.ch](https://www.locarnofestival.ch/) を範としている。
 
+> **デプロイと引き継ぎ**: Vercel への移行手順・環境変数・公開前チェックは
+> **[`docs/deploy-vercel.md`](docs/deploy-vercel.md)** にまとめてある。
+> 掲載内容の編集は `/admin`（管理画面）から行い、**デプロイは不要**。
+
 ```
 index.html       トップ
 about.html       映画祭について（背景・3つのアプローチ・開催概要・実行委員会・パートナー募集）

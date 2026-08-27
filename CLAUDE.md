@@ -12,7 +12,25 @@ npm run build      # 本番ビルド（型チェック込み）
 npx tsc --noEmit   # 型チェック単独
 npm run lint       # ESLint（eslint-config-next の core-web-vitals + typescript）
 npm start          # 本番ビルドの起動（見た目の差分検証はこれで行う）
+npm run deploy:cf  # Cloudflare Workers へデプロイ（Vercel は git push で自動）
 ```
+
+## デプロイ先
+
+**Vercel（主）** — `main` への push で本番デプロイ、それ以外のブランチはプレビュー。
+手順・環境変数・引き継ぎ事項は `docs/deploy-vercel.md`。設定は `vercel.json`
+（実行リージョンを東京 `hnd1` に固定。公開8ページが毎回 Turso を読むため）。
+
+**Cloudflare Workers（従）** — `npm run deploy:cf`。移行期間中の並行運用として残してある。
+`wrangler.jsonc` / `open-next.config.ts` / `next.config.ts` 末尾の
+`initOpenNextCloudflareForDev` と `outputFileTracingIncludes` がこちら向け。
+不要になったら消せる（消す範囲は `docs/deploy-vercel.md` §7）。
+
+環境変数は4つ（`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` / `ADMIN_PASSWORD_PBKDF2` /
+`ADMIN_SESSION_SECRET`）。見本は `.env.example`。ローカルは `.dev.vars` でも
+`.env.local` でも動く（`scripts/load-dev-vars.mjs` が両方読む）。
+**Turso の2つが未設定でも公開ページは落ちず、同梱の `content/*.json` で表示される**
+（管理画面だけが 500 になる）。実測で確認済み。
 
 テストランナーは導入していない。変更の検証は `npm run build` + `npx tsc --noEmit` と、後述の HTML 突き合わせで行う。
 
