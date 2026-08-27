@@ -43,9 +43,14 @@ export default function Films({
                   {...(film.trailer.start
                     ? { "data-trailer-start": film.trailer.start }
                     : {})}
-                  aria-label={film.trailer.aria}
+                  // 管理画面から動画URLだけ入れて登録した場合、読み上げ文と帯の文字は空になる。
+                  // 空の aria-label はボタンを読み上げ不能にし、空の帯（背景色と padding を持つ）は
+                  // 黒い矩形だけが残るため、既存2作品と同じ書式の既定値で補う。
+                  aria-label={film.trailer.aria || `『${film.t}』の予告編を再生`}
                 >
-                  <span className="film__play-label">{film.trailer.label}</span>
+                  <span className="film__play-label">
+                    {film.trailer.label || "Trailer"}
+                  </span>
                 </button>
               ) : null}
             </span>

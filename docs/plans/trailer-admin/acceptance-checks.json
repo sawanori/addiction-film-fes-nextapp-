@@ -1,0 +1,175 @@
+{
+  "feature": "管理画面から予告編URLを登録できるようにする",
+  "version": 2,
+  "note": "v2。gemini / codex のレビューを受けて check_004（不正値の扱い）を反転し、check_014（revert）・check_019（PATCH経路）を追加した。",
+  "checks": [
+    {
+      "id": "check_001",
+      "target": "管理画面 /admin/docs/films の予告編グループ",
+      "rule": "6作品すべてに『YouTube の動画ID』『再生開始位置（秒）』『再生ボタンの読み上げ文』『再生ボタンの帯の文字』の4欄が出る",
+      "expected_result": "編集画面のHTML中に各ラベルが6回ずつ現れる（現行は動画IDが2回・開始位置が1回）",
+      "manual_or_automated": "automated",
+      "verification_method": "ログイン後 curl で /admin/docs/films を取得し、各ラベルの出現回数を数える"
+    },
+    {
+      "id": "check_002",
+      "target": "PUT /api/admin/documents/films の URL→動画ID 変換（主要フロー）",
+      "rule": "『https://www.youtube.com/watch?v=Ml8xEePJGoo』を動画ID欄に入れて保存すると Ml8xEePJGoo が保存される",
+      "expected_result": "応答の data.items[].trailer.id が Ml8xEePJGoo。GET で再取得しても同じ",
+      "manual_or_automated": "automated",
+      "verification_method": "dev DB に対して PUT を投げ、応答 JSON と GET の再取得結果を確認する"
+    },
+    {
+      "id": "check_003",
+      "target": "URL の各形式",
+      "rule": "watch?v= / youtu.be / embed / shorts / live / v / nocookie / m. / music. / スキーム省略 / 生ID / 前後空白つきID のすべてが動画IDになる",
+      "expected_result": "implementation-plan.md §9.4 の表のとおり",
+      "manual_or_automated": "automated",
+      "verification_method": "node scripts/verify-youtube-id.mjs（exit 0）"
+    },
+    {
+      "id": "check_004",
+      "target": "解釈できない入力の扱い（v1 から方針を反転）",
+      "rule": "YouTube と解釈できない非空の値は 422 で拒否され、入力した文字列は消えない",
+      "expected_result": "PUT が 422 と『YouTube の動画URLか、11文字の動画IDを入れてください』を含む errors を返し、DBの値は変わらない",
+      "manual_or_automated": "automated",
+      "verification_method": "dev DB へ不正値を含む PUT を投げ、状態コードと errors、その後の GET の値を確認する"
+    },
+    {
+      "id": "check_005",
+      "target": "予告編を持たない作品への新規登録",
+      "rule": "01 に動画IDを入れて保存すると、公開ページのサムネイルに再生ボタンが出てモーダルで再生できる",
+      "expected_result": "index / programme の該当 .film に .film__play が現れ、クリックで youtube-nocookie の iframe が生成される",
+      "manual_or_automated": "automated",
+      "verification_method": "dev DB へ保存後、ローカル本番サーバのHTMLで .film__play を確認し、headless Chrome (CDP) でクリックして iframe の src を確認する"
+    },
+    {
+      "id": "check_006",
+      "target": "読み上げ文・帯の文字の既定値",
+      "rule": "aria・label が空のまま保存しても、aria-label が『<作品タイトル>』の予告編を再生、帯が Trailer になる",
+      "expected_result": "生成HTMLの aria-label が空文字にならず、帯のテキストが Trailer",
+      "manual_or_automated": "automated",
+      "verification_method": "空のまま保存した状態で公開ページのHTMLを取得し、該当ボタンの属性とテキストを確認する"
+    },
+    {
+      "id": "check_007",
+      "target": "既存2作品の予告編（回帰）",
+      "rule": "04 は Ml8xEePJGoo、05 は IkSjwENUNAU が3秒開始で従来どおり再生できる",
+      "expected_result": "iframe の src が現行と同じ（05 は &start=3 付き）",
+      "manual_or_automated": "automated",
+      "verification_method": "headless Chrome (CDP) で index / programme の両方から再生して src を確認する"
+    },
+    {
+      "id": "check_008",
+      "target": "公開8ルートの出力（最大の回帰リスク）",
+      "rule": "予告編を入れていない状態で、公開出力が現行 baseline と完全一致する",
+      "expected_result": "npm run verify:text が『完全一致: 8ルート / 要素1891個 / テキストノード1020個 / コメントノード0個』で exit 0",
+      "manual_or_automated": "automated",
+      "verification_method": "dev DB を db-seed --force で戻してから npm run verify:text。baseline は更新しない"
+    },
+    {
+      "id": "check_009",
+      "target": "変換元の静的HTMLとの一致",
+      "rule": "8ルートの可視テキスト列・class 多重集合・title/description が変換元HTMLと一致する",
+      "expected_result": "全8ルートで差分0",
+      "manual_or_automated": "automated",
+      "verification_method": "本番ビルドを起動し、/Users/noritakasawada/AI_P/addiction-film-festival の各HTMLと突き合わせる"
+    },
+    {
+      "id": "check_010",
+      "target": "編集網羅性",
+      "rule": "全ドキュメントのリーフが manifest から編集できる",
+      "expected_result": "npm run verify:coverage が11ドキュメントすべて [ok]（exit 0）",
+      "manual_or_automated": "automated",
+      "verification_method": "npm run verify:coverage"
+    },
+    {
+      "id": "check_011",
+      "target": "manifest-core.ts の制約",
+      "rule": "manifest-core.ts は何も import しない（scripts/verify-coverage.mjs が Node で直接読むため）",
+      "expected_result": "import 文が0件で、verify:coverage が動く",
+      "manual_or_automated": "automated",
+      "verification_method": "grep -c '^import' で0件を確認し、npm run verify:coverage を実行する"
+    },
+    {
+      "id": "check_012",
+      "target": "認証",
+      "rule": "未ログインでは編集画面・保存APIに到達できない",
+      "expected_result": "/admin/docs/films は /admin/login へ 307、PUT は 401",
+      "manual_or_automated": "automated",
+      "verification_method": "Cookie 無しで curl して状態コードを確認する"
+    },
+    {
+      "id": "check_013",
+      "target": "APIの検証エラー（既存挙動の回帰）",
+      "rule": "manifest に無いキーを混ぜた保存は拒否される",
+      "expected_result": "422 と『manifest に無いパスです』を含むエラー配列",
+      "manual_or_automated": "automated",
+      "verification_method": "dev DB に対して不正なキーを含む PUT を投げる"
+    },
+    {
+      "id": "check_014",
+      "target": "revert（§9.3 の仮説の検証。codex 指摘2）",
+      "rule": "trailer キーが無かった時代の版へ revert しても、管理画面に6作品4欄が出る",
+      "expected_result": "revert 後の編集画面で『YouTube の動画ID』が6回出る（always が値の有無に依存しないため）",
+      "manual_or_automated": "automated",
+      "verification_method": "dev DB で版1へ revert し、編集画面HTMLのラベル出現回数を数える。確認後に seed で戻す"
+    },
+    {
+      "id": "check_015",
+      "target": "楽観ロックと履歴",
+      "rule": "保存すると版が1つ進み履歴に残る。古い baseRevision での保存は409",
+      "expected_result": "応答の revision が +1、古い版での再送は409",
+      "manual_or_automated": "automated",
+      "verification_method": "dev DB に対して連続でPUTし、2回目に古い baseRevision を送る"
+    },
+    {
+      "id": "check_016",
+      "target": "モバイル表示",
+      "rule": "狭い画面でも再生ボタンとモーダルが破綻しない",
+      "expected_result": "375px 幅で .film__play が画像内に収まり、モーダルのパネルが画面内に収まる",
+      "manual_or_automated": "automated",
+      "verification_method": "headless Chrome を 375x812 で開き、getBoundingClientRect で矩形を確認する"
+    },
+    {
+      "id": "check_017",
+      "target": "ビルド・型・lint",
+      "rule": "型エラー0、ビルド成功、lint の指摘が既存6件から増えない",
+      "expected_result": "npx tsc --noEmit と npm run build が exit 0、npm run lint が『✖ 6 problems (2 errors, 4 warnings)』のまま",
+      "manual_or_automated": "automated",
+      "verification_method": "3コマンドを実行して最終行を記録する"
+    },
+    {
+      "id": "check_018",
+      "target": "本番反映",
+      "rule": "本番・dev 両DBが content/films.json と一致し、本番の管理画面と公開ページで上記が成立する",
+      "expected_result": "全キー差分0、本番8ルート200、本番管理画面で予告編4欄が6作品ぶん出る",
+      "manual_or_automated": "automated",
+      "verification_method": "seed 後に DB と JSON の差分を取り、本番URLへ curl する"
+    },
+    {
+      "id": "check_019",
+      "target": "PATCH（ops）経路の変換と検証（codex 指摘1）",
+      "rule": "PATCH で trailer.id に URL を set しても動画IDに変換され、不正値は422になる",
+      "expected_result": "URL の set は成功して保存値がID、不正値の set は422",
+      "manual_or_automated": "automated",
+      "verification_method": "dev DB に対して PATCH を2通り投げ、応答と保存値を確認する"
+    },
+    {
+      "id": "check_020",
+      "target": "退避データ",
+      "rule": "seed の前に本番・dev 両DBの content_documents / content_revisions を退避してある",
+      "expected_result": "backups/ に当日の JSON が存在し、行数が退避前と一致する",
+      "manual_or_automated": "automated",
+      "verification_method": "backups/ のファイルを開いて行数を数える"
+    },
+    {
+      "id": "check_021",
+      "target": "多態ブロックへの影響（always の副作用がないこと）",
+      "rule": "privacy / terms の blocks[] に、その形にそぐわない入力欄が増えていない",
+      "expected_result": "段落ブロックに箇条書き用の欄が出ない（現行と同じ）",
+      "manual_or_automated": "automated",
+      "verification_method": "privacy の編集画面HTMLを改修前後で取得し、入力欄の数を比較する"
+    }
+  ]
+}

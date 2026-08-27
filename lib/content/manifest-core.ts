@@ -14,10 +14,27 @@
  * - 具体パス（PATCH の ops）… 添字を含む。例 `price.rows.3.type`（計画 §9.2）
  */
 
+/**
+ * `format`: 値の性格。今のところ `youtube-id`（YouTube の動画ID）だけ。
+ * 付いた欄は保存時に URL からIDへ変換され、形式が違えば 422 になる（`lib/admin/ops.ts`）。
+ *
+ * `always`: 値が `undefined` でも入力欄を出す。既定では `FieldEditor` が
+ * 値の無い子項目を落とすため、まだ一度も値を入れていない項目は編集できない。
+ * ただし `privacy` / `terms` の `blocks[]` のように**要素ごとに形が違う配列**では、
+ * manifest はその形の和なので、一律に出すと段落ブロックへ箇条書き用の欄が出てしまう。
+ * そのため一律ではなく、`ALWAYS_SHOWN` に挙げたパスにだけ付ける。
+ */
 export type Field =
-  | { type: "text" | "textarea" | "image" | "boolean" | "inline"; path: string; label: string; hint?: string }
-  | { type: "group"; path: string; label: string; hint?: string; fields: Field[] }
-  | { type: "array"; path: string; label: string; hint?: string; item: Field; template: unknown };
+  | {
+      type: "text" | "textarea" | "image" | "boolean" | "inline";
+      path: string;
+      label: string;
+      hint?: string;
+      format?: "youtube-id";
+      always?: true;
+    }
+  | { type: "group"; path: string; label: string; hint?: string; always?: true; fields: Field[] }
+  | { type: "array"; path: string; label: string; hint?: string; always?: true; item: Field; template: unknown };
 
 export type DocumentManifest = {
   key: string;
@@ -55,11 +72,17 @@ const PATH_LABELS: Record<string, [label: string, hint?: string]> = {
   "items[].meta": ["補足情報", "製作会社など。1行ずつ足せます"],
   "items[].d": ["作品紹介文"],
   "items[].metaProgramme": ["補足情報（programme 用）", "programme ページだけ別の文言にする場合に使います"],
-  "items[].trailer": ["予告編", "YouTube の動画IDを入れた作品だけ、サムネイルに再生ボタンが出ます"],
-  "items[].trailer.id": ["YouTube の動画ID", "動画URLの v= の後ろの英数字。空欄なら再生ボタンを出しません"],
+  "items[].trailer": ["予告編", "動画URLを入れた作品だけ、サムネイルに再生ボタンが出ます"],
+  "items[].trailer.id": [
+    "予告編の動画URL",
+    "YouTube の動画URLをそのまま貼れます（保存するとき動画IDに変換します）。空欄なら再生ボタンを出しません",
+  ],
   "items[].trailer.start": ["再生開始位置（秒）", "例: 3。空欄なら最初から再生します"],
-  "items[].trailer.aria": ["再生ボタンの読み上げ文", "例: 『一瞬の楽園』の予告編を再生。画面には出ません"],
-  "items[].trailer.label": ["再生ボタンの帯の文字", "例: Trailer"],
+  "items[].trailer.aria": [
+    "再生ボタンの読み上げ文",
+    "画面には出ません。空欄なら『作品タイトル』の予告編を再生 と読み上げます",
+  ],
+  "items[].trailer.label": ["再生ボタンの帯の文字", "例: Trailer。空欄なら Trailer と表示します"],
   "trailerModal": ["予告編の再生画面", "予告編を開いたときに出る枠。index と programme で共通です"],
   "trailerModal.title": ["見出しの初期値", "開くと作品タイトルに置き換わるため、通常は画面に出ません"],
   "trailerModal.close": ["閉じるボタンの文字"],
@@ -139,6 +162,35 @@ const PATH_LABELS: Record<string, [label: string, hint?: string]> = {
   "chapters": ["章"],
   "blocks": ["本文ブロック"],
 };
+
+/**
+ * 値の性格を宣言する表（正規化パス）。付いた欄は保存時に変換・検証される。
+ * 詳細は `Field` の `format` のコメントと `lib/admin/ops.ts`。
+ */
+const PATH_FORMATS: Record<string, "youtube-id"> = {
+  "items[].trailer.id": "youtube-id",
+};
+
+/**
+ * 値が `undefined` でも入力欄を出すパス（正規化パス）。
+ *
+ * **なぜ要るか**: `FieldEditor` は値の無い子項目を描画しない。そのため
+ * 「まだ予告編を登録していない作品」には入力欄が1つも出ず、管理画面から予告編を
+ * 足せなかった。データ側に空文字を入れておく手もあるが、それだけでは
+ * 古いリビジョンへ revert したときに再発する（`docs/plans/trailer-admin/implementation-plan.md` §9.3）。
+ * ここで宣言しておけば、**値の有無に関係なく**フォームが開く。
+ *
+ * **なぜ一律にしないか**: `privacy` / `terms` の `blocks[]` は要素ごとに形が違い
+ * （`{t:"p", value}` か `{t:"ol", items}`）、manifest はその和なので、
+ * 一律に出すと段落ブロックに箇条書き用の欄が出てしまう。
+ */
+const ALWAYS_SHOWN = new Set([
+  "items[].trailer",
+  "items[].trailer.id",
+  "items[].trailer.start",
+  "items[].trailer.aria",
+  "items[].trailer.label",
+]);
 
 /** キー名ごとの表示名（パス指定が無いときのフォールバック）。 */
 const FIELD_LABELS: Record<string, [label: string, hint?: string]> = {
@@ -338,7 +390,7 @@ function collectInlinePaths(allDocuments: Record<string, unknown>): Set<string> 
  * `privacy.sections[].blocks[]` のように要素ごとに形が違う配列もあるため、
  * 全要素のキーの和をとる。
  */
-function unify(values: unknown[]): unknown {
+export function unify(values: unknown[]): unknown {
   const present = values.filter((v) => v !== undefined);
   if (present.length === 0) return "";
 
@@ -397,10 +449,12 @@ export function createManifestBuilder(allDocuments: Record<string, unknown>) {
 
   const inferField = (value: unknown, path: string, key: string): Field => {
     const { label, hint } = labelFor(path, key);
+    // 値が無くても入力欄を出すか（ALWAYS_SHOWN のコメント参照）
+    const always = ALWAYS_SHOWN.has(path) ? ({ always: true } as const) : undefined;
 
     if (Array.isArray(value)) {
       if (inlinePaths.has(path) || hasMarkupNode(value)) {
-        return { type: "inline", path, label, hint };
+        return { type: "inline", path, label, hint, ...always };
       }
       // 1件目ではなく全要素の形の和をとる（unify のコメント参照）
       const sample = unify(value);
@@ -413,6 +467,7 @@ export function createManifestBuilder(allDocuments: Record<string, unknown>) {
         path,
         label,
         hint,
+        ...always,
         item,
         template: blankTemplate(sample),
       };
@@ -424,14 +479,25 @@ export function createManifestBuilder(allDocuments: Record<string, unknown>) {
         path,
         label,
         hint,
+        ...always,
         fields: Object.entries(value as Record<string, unknown>).map(([k, v]) =>
           inferField(v, path ? `${path}.${k}` : k, k)
         ),
       };
     }
 
-    if (typeof value === "boolean") return { type: "boolean", path, label, hint };
-    if (typeof value === "string") return { type: stringFieldType(key, value), path, label, hint };
+    if (typeof value === "boolean") return { type: "boolean", path, label, hint, ...always };
+    if (typeof value === "string") {
+      const format = PATH_FORMATS[path];
+      return {
+        type: stringFieldType(key, value),
+        path,
+        label,
+        hint,
+        ...(format ? { format } : {}),
+        ...always,
+      };
+    }
 
     // 数値・null は現行データに存在しない。将来出てきたらテキストとして扱う。
     return { type: "text", path, label, hint };

@@ -1,4 +1,5 @@
 import type { DocumentManifest, Field } from "@/lib/content/manifest-core";
+import { extractYouTubeId, isYouTubeId } from "@/lib/content/youtube";
 
 /**
  * PATCH の差分オペレーションの検証と適用。
@@ -135,6 +136,62 @@ function normalizeNewlines(value: string): string {
   return value.replace(/\r\n/g, "\n");
 }
 
+/* ------------------------------------------------------------------ *
+ * format（値の性格が決まっている欄）
+ * ------------------------------------------------------------------ */
+
+/**
+ * manifest で `format` が付いた欄だけの整形。**§8.4「文字列を正規化しない」の明示的な例外**で、
+ * 対象は `lib/content/manifest-core.ts` の `PATH_FORMATS` に挙げたパスに限る。
+ *
+ * `youtube-id`: 利用者が動画URLを貼れるように、保存時にIDへ揃える。
+ * 変換できない非空の値は `validateFormat` が 422 にするので、ここでは落とさずそのまま通す
+ * （入力を勝手に消すと、何を入れたか分からなくなるため）。
+ */
+function formatValue(field: Field, value: string): string {
+  if (field.type === "group" || field.type === "array" || field.type === "inline") return value;
+  return field.format === "youtube-id" ? extractYouTubeId(value) : value;
+}
+
+/** 整形後の値が保存してよい形か。エラー文言（日本語）を返し、問題なければ null。 */
+function validateFormat(field: Field, value: string): string | null {
+  if (field.type === "group" || field.type === "array" || field.type === "inline") return null;
+  if (field.format !== "youtube-id") return null;
+  // 空欄は「予告編なし」を表す正しい状態
+  if (value === "" || isYouTubeId(value)) return null;
+  return "YouTube の動画URLか、11文字の動画IDを入れてください";
+}
+
+/**
+ * ドキュメント全体に `format` を適用する（管理画面フォームの PUT 経路で使う）。
+ * `formatValue` の対象外の値には一切触れない。
+ */
+export function formatDocument(doc: unknown, manifest: DocumentManifest): unknown {
+  const fields = indexFields(manifest);
+
+  const walk = (value: unknown, path: string): unknown => {
+    if (Array.isArray(value)) {
+      const field = path === "" ? undefined : fields.get(normalizePath(path));
+      // inline（装飾つきテキスト）の中身は文字列の配列なので、format の対象にしない
+      if (field?.type === "inline") return value;
+      return value.map((item, i) => walk(item, path ? `${path}.${i}` : String(i)));
+    }
+    if (isContainer(value)) {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+          k,
+          walk(v, path ? `${path}.${k}` : k),
+        ])
+      );
+    }
+    if (typeof value !== "string" || path === "") return value;
+    const field = fields.get(normalizePath(path));
+    return field ? formatValue(field, value) : value;
+  };
+
+  return walk(doc, "");
+}
+
 /** 文字列を含む値を再帰的に改行正規化する（配列要素の追加で使う）。 */
 function normalizeDeep(value: unknown): unknown {
   if (typeof value === "string") return normalizeNewlines(value);
@@ -206,7 +263,12 @@ export function validateDocument(doc: unknown, manifest: DocumentManifest): OpEr
       return;
     }
     if (field.type === "text" || field.type === "textarea" || field.type === "image") {
-      if (typeof value !== "string") errors.push({ path, message: "文字列が必要です" });
+      if (typeof value !== "string") {
+        errors.push({ path, message: "文字列が必要です" });
+        return;
+      }
+      const formatError = validateFormat(field, value);
+      if (formatError) errors.push({ path, message: formatError });
       return;
     }
     errors.push({ path, message: `${field.type} フィールドに値を直接置けません` });
@@ -232,9 +294,23 @@ export function normalizeDocument(doc: unknown): unknown {
  * ops を検証してから適用する。1件でも不正なら何も適用せずエラーを返す。
  * `doc` は変更せず、新しいオブジェクトを返す。
  */
-export function applyOps(doc: unknown, ops: Op[], manifest: DocumentManifest): ApplyResult {
+export function applyOps(doc: unknown, rawOps: Op[], manifest: DocumentManifest): ApplyResult {
   const fields = indexFields(manifest);
   const errors: OpError[] = [];
+
+  // `format` 付きの欄は、検証の**前に**整形する（PUT 経路と同じ規則を ops 経路にも通す。
+  // これをしないと、PATCH から動画URLを直接 set できてしまい「保存済みの値は必ず
+  // 空文字か11文字の動画ID」という不変条件が崩れる）。
+  const ops = Array.isArray(rawOps)
+    ? rawOps.map((op) => {
+        if (!op || typeof op !== "object" || op.op !== "set") return op;
+        if (typeof op.path !== "string" || typeof op.value !== "string") return op;
+        const field = fields.get(normalizePath(op.path));
+        if (!field) return op;
+        const formatted = formatValue(field, op.value);
+        return formatted === op.value ? op : { ...op, value: formatted };
+      })
+    : rawOps;
 
   if (!Array.isArray(ops)) {
     return { ok: false, errors: [{ path: "", message: "ops が配列ではありません" }] };
@@ -269,6 +345,9 @@ export function applyOps(doc: unknown, ops: Op[], manifest: DocumentManifest): A
       } else if (field.type === "text" || field.type === "textarea" || field.type === "image") {
         if (typeof op.value !== "string") {
           errors.push({ path: op.path, message: "文字列が必要です" });
+        } else {
+          const formatError = validateFormat(field, op.value);
+          if (formatError) errors.push({ path: op.path, message: formatError });
         }
       } else {
         errors.push({ path: op.path, message: `${field.type} フィールドには set できません` });

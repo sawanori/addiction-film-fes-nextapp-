@@ -723,3 +723,72 @@ inline ノードとして `node.c.map(...)` を呼ぶが、これらのオブジ
 
 指定されたパスワードは辞書語＋西暦で、推測されやすい部類であることを伝えたうえで、
 指示どおりに設定した。記号を混ぜた形への変更は同じ手順で随時できる。
+
+## 15. 姉妹サイトの3修正の取り込みと、予告編の管理画面対応（2026-08-27）
+
+### 15.1 取り込んだ3件（コミット `1f5e41f`）
+
+静的HTML版 `addiction_cinema_page` の `5fe3163` / `1ebdc54` / `4a77e44` が未反映だった。
+8-19 の同期（`439b434`）はノベルティ取り下げぶんだけで、直前の `5fe3163` を取りこぼしていた。
+
+- 「Stay in the Loop」メール登録セクションの削除（`NewsletterForm` ごと削除）
+- 3 Approaches が2枚になったぶんを詰める `.sections-grid--2`
+- 予告編の YouTube モーダル（`script.js` の5つ目の IIFE を `TrailerModal.tsx` へ移植）
+
+### 15.2 Turso が dev / prod の2本立てだった
+
+`.dev.vars` の接続先は **dev**（`addiction-film-fes-dev-sawanori`）で、本番は
+`.dev.vars.prod-reference`（`addiction-film-fes-prod-sawanori`、600・git 追跡外）。
+8-19 の「本番 seed 済み」は prod だけで、dev はノベルティ時代のまま残っていた。
+今回は両方を `backups/` へ退避してから seed した。
+
+反映は必ず **デプロイ →（本番 → dev の順に）seed** で行う。逆順にすると、旧コードが
+削除済みキー（`newsletter` など）を参照して本番が 500 になる。
+
+### 15.3 予告編を管理画面から登録できるようにした
+
+計画・レビュー・受け入れ基準は `docs/plans/trailer-admin/`（この案件のために
+`docs/implementation-plan.md` とは別に置いた。あちらは /admin 構築の正典で、
+コード注釈が §5 / §8.4 / §9.1 / §9.2 として参照しているため）。
+
+見つかっていた穴は2つ。
+
+1. 動画ID欄に**動画URLを貼れない**（利用者が持っているのはURL）
+2. `trailer` キーを持たない4作品は、**入力欄が1つも描画されない**
+
+2 の原因は保存の拒否ではなく、`FieldEditor` が値 `undefined` の子項目を描画しない仕様。
+これは `privacy` / `terms` の多態ブロック（`{t:"p"}` / `{t:"ol"}`）で誤った欄が出るのを
+防ぐための仕様なので、**一律に描画するようには変えられない**。パス指定で開ける
+`ALWAYS_SHOWN`（`manifest-core.ts`）を足して予告編の5パスだけ開けた。
+
+**実装中に想定が1つ外れた。** 「`always` があるので、予告編の項目が消えた版へ revert しても
+入力欄は残る」と計画に書いたが、実測すると 0 個だった。`always` は manifest に
+フィールドが存在するときだけ効くのに対し、manifest は**保存データの形**から導出されるため、
+全作品から `trailer` が消えると定義ごと落ちる。対処として `buildManifest` を
+**同梱JSON（正典）と保存データの形の和**から導出するよう変えた（`unify` を再利用）。
+manifest は形の導出にしか使わない（値は `initialData` で別に渡す）ので、フォームに出る
+値は変わらない。再実測で、消えた状態から4欄が6作品ぶん復活し、URLを貼った保存も通った。
+
+文字列を加工しない方針（§8.4）への例外は、`PATH_FORMATS` に挙げた欄に限定した
+（現在は予告編の動画ID欄のみ）。YouTube と解釈できない非空の値は 422 で拒否する。
+「そのまま保存する」案は、壊れた iframe を公開ページに出すという敵対的レビューの指摘で撤回した。
+
+### 15.4 敵対的レビュー（gemini 2.5 Pro / codex）
+
+計画 v1 を両者にレビューさせ、採否を `docs/plans/trailer-admin/implementation-plan.md` §16 に
+表で記録した。採用7件・別解1件・不採用2件。不採用は次の2つ。
+
+- 「`aria`/`label` を空にすると `verify:text` が落ちる」（G）… 管理画面での編集で公開出力が
+  変わるのは設計どおりで、baseline は `content/*.json` から作り直す前提。実測でも壊れていない。
+- 「iframe に `sandbox` を付ける」（G）… 再生には `allow-scripts` と `allow-same-origin` が
+  両方要り、許すと sandbox の意味がほぼ失われる。姉妹サイト2つと挙動を揃える必要もある。
+
+### 15.5 残っている課題（申し送り）
+
+**同じ理由で描画されていない入力欄が、予告編以外にまだ約100件ある。**
+実測で確認した主なもの: `films.items[0].delay`、`programme.guide.rows[0].id` / `.delay`、
+`programme.venue.boxes[].p2Cls` / `.variant`、`tickets.price.boxes[0].delay`、
+`site.footer.columns[4].items[].base` / `.hash`。
+`ALWAYS_SHOWN` に足せば開くが、**空文字を保存したときに公開DOMが変わらないか**を対象ごとに
+確かめる必要がある（`variant` / `cls` は className の分岐に効く）。
+`privacy` / `terms` の多態ブロックは**対象外**（現在の挙動が正しい）。

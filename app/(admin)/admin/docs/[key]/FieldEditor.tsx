@@ -1,6 +1,7 @@
 "use client";
 
 import type { Field } from "@/lib/content/manifest-core";
+import { extractYouTubeId } from "@/lib/content/youtube";
 import InlineEditor from "./InlineEditor";
 
 /**
@@ -11,6 +12,14 @@ import InlineEditor from "./InlineEditor";
  * - 項目名は日本語（manifest 側で付けている）。補足がある項目は小さく説明を出す
  * - 配列の各項目には**中身から作った見出し**を出す（「#3」だけでは何の項目か分からないため）
  * - 長い配列は折りたたむ
+ *
+ * **グループの描画契約**: グループは「値が `undefined` / `null` の子項目」を描画しない。
+ * 要素ごとに形が違う配列（`privacy` / `terms` の `blocks[]` は `{t:"p", value}` か
+ * `{t:"ol", items}`）で、manifest がその形の**和**になっているため、一律に出すと
+ * 段落ブロックへ箇条書き用の欄が出てしまうからである。
+ * その代わり、値が無くても必ず出したい項目は manifest 側で `always: true` を宣言する
+ * （`lib/content/manifest-core.ts` の `ALWAYS_SHOWN`）。呼び出し元がデータを空文字で
+ * 埋めておく必要はない。
  */
 
 export type ChangeHandler = (path: string, value: unknown) => void;
@@ -94,7 +103,8 @@ export default function FieldEditor({
     const record = (value ?? {}) as Record<string, unknown>;
     const children = field.fields.filter((child) => {
       const childKey = child.path.slice(field.path.length + 1);
-      return !isEmptyValue(record[childKey]);
+      // 値が無くても出す項目は manifest 側で always を宣言する（上のコメント参照）
+      return !isEmptyValue(record[childKey]) || child.always === true;
     });
 
     const body = children.map((child) => {
@@ -333,6 +343,17 @@ export default function FieldEditor({
         type="text"
         value={typeof value === "string" ? value : ""}
         onChange={(e) => onChange(path, e.target.value)}
+        // 動画URLを貼ったら、欄を離れた時点で動画IDに変える。保存時にサーバ側でも同じ変換を
+        // かけるが（lib/admin/ops.ts）、ここで見せておかないと「何が保存されるのか」が
+        // 保存するまで分からない。打鍵のたびに変えると編集しづらいので blur に限る。
+        {...(field.format === "youtube-id"
+          ? {
+              onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                const next = extractYouTubeId(e.target.value);
+                if (next !== e.target.value) onChange(path, next);
+              },
+            }
+          : {})}
       />
     </label>
   );

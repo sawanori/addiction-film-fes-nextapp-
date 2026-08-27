@@ -1,0 +1,295 @@
+{
+  "feature": "管理画面から予告編URLを登録できるようにする",
+  "version": 2,
+  "note": "v2。gemini / codex の敵対的レビューを反映（採否は implementation-plan.md §16）。前提コミット 4ab25cc。リポジトリ直下の docs/task-list.json は /admin 構築時の正典なので触らない。",
+  "tasks": [
+    {
+      "task_id": "task_001",
+      "title": "YouTube URL→動画ID の共有パーサと、その回帰テストを作る",
+      "goal": "サーバ側とクライアント側が同じ規則で URL を動画IDへ変換できるようにする。tsx に依存せず node だけで検証できる状態にする。",
+      "scope": [
+        "lib/content/youtube.ts に extractYouTubeId(input): string と isYouTubeId(value): boolean を実装",
+        "watch?v= / youtu.be / embed / shorts / live / v / youtube-nocookie / m. / music. に対応",
+        "スキーム省略は『既知ホスト名で始まる場合だけ』https:// を補う（codex 指摘6）",
+        "11文字の [A-Za-z0-9_-] を動画IDとみなす。前後の空白は落とす（この欄限定の例外・§16-4）",
+        "変換できない入力はそのまま返す（消さない。拒否は検証側の責務）",
+        "scripts/verify-youtube-id.mjs に implementation-plan.md §9.4 の全パターンを書く"
+      ],
+      "non_scope": [
+        "t= / start= から開始秒を取り出すこと",
+        "YouTube 以外のサービス",
+        "短縮URLの展開（ネットワークアクセスはしない）",
+        "tsx を devDependency に追加すること"
+      ],
+      "files_to_read": ["lib/admin/ops.ts", "components/TrailerModal.tsx", "scripts/verify-coverage.mjs"],
+      "files_to_create": ["lib/content/youtube.ts", "scripts/verify-youtube-id.mjs"],
+      "files_to_modify": [],
+      "dependencies": [],
+      "implementation_steps": [
+        "verify-coverage.mjs と同じく .ts を直接 import する（Node 22 の型剥がし）",
+        "URL 解析は new URL()。失敗したら入力をそのまま返す",
+        "許可ホストは集合で持ち、集合外は変換しない",
+        "docs/implementation-plan.md §8.4 の明示的な例外である旨をファイル冒頭に書く"
+      ],
+      "done_definition": [
+        "node scripts/verify-youtube-id.mjs が全ケース合格で exit 0",
+        "他サービスのURL・書き損じ・空文字が入力のまま返る",
+        "npx tsc --noEmit が通る"
+      ],
+      "verify_commands": ["node scripts/verify-youtube-id.mjs", "npx tsc --noEmit"],
+      "risk_level": "low"
+    },
+    {
+      "task_id": "task_002",
+      "title": "manifest に format と always を導入し、予告編の4欄に付ける",
+      "goal": "「この欄は YouTube の動画IDである」「この欄は値が無くても入力欄を出す」を、既存のラベル辞書と同じ流儀で宣言的に持たせる。",
+      "scope": [
+        "Field 型のスカラー variant に format?: \"youtube-id\" を追加",
+        "Field 型（group と scalar）に always?: true を追加",
+        "PATH_FORMATS 表: items[].trailer.id → youtube-id",
+        "ALWAYS_SHOWN 集合: items[].trailer と その4子（id / start / aria / label）",
+        "inferField で両者を付与する",
+        "hint を3件更新（動画ID＝URLを貼れる／帯の文字＝空欄なら Trailer／読み上げ文＝空欄なら作品名から生成）"
+      ],
+      "non_scope": [
+        "予告編以外のパスへの always 付与（implementation-plan.md §17 の別案件）",
+        "多態ブロック（privacy / terms の blocks[]）への付与",
+        "manifest の導出ロジックそのものの変更"
+      ],
+      "files_to_read": ["lib/content/manifest-core.ts", "lib/content/manifest.ts", "scripts/verify-coverage.mjs"],
+      "files_to_create": [],
+      "files_to_modify": ["lib/content/manifest-core.ts"],
+      "dependencies": [],
+      "implementation_steps": [
+        "manifest-core.ts は何も import しない制約を守る（verify-coverage.mjs が Node で直接読む）",
+        "PATH_FORMATS / ALWAYS_SHOWN は PATH_LABELS の直後に置き、同じ正規化パス表記を使う",
+        "format は type が text / textarea / image のときだけ付ける"
+      ],
+      "done_definition": [
+        "buildManifest('films') の items[].trailer.id に format: 'youtube-id' が入る（出力で確認）",
+        "items[].trailer と4子に always: true が入る（出力で確認）",
+        "manifest-core.ts に import 文が1つも無い（grep で確認）",
+        "npm run verify:coverage が11ドキュメントすべて [ok]",
+        "npx tsc --noEmit が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run verify:coverage"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_003",
+      "title": "すべての書き込み経路で動画IDへ変換し、不正値を422で拒否する",
+      "goal": "保存されている trailer.id が必ず『空文字か11文字の動画ID』になる状態を、PUT と PATCH の両方で成り立たせる。",
+      "scope": [
+        "lib/admin/ops.ts に formatDocument(doc, manifest) を追加（format 付きリーフだけ変換）",
+        "validateDocument に動画IDの形式検証を追加（空文字か isYouTubeId のみ許可）",
+        "applyOps の set でも同じ変換と検証を行う（codex 指摘1）",
+        "PUT ハンドラで normalizeDocument の後、validateDocument の前に formatDocument を挟む",
+        "エラーメッセージは『YouTube の動画URLか、11文字の動画IDを入れてください』",
+        "§8.4 の例外である理由をコメントに残す"
+      ],
+      "non_scope": [
+        "revert 経路の変更（implementation-plan.md §9.3 の理由による）",
+        "format 以外の欄への正規化の適用",
+        "既存の 409 / 503 / 401 応答の変更"
+      ],
+      "files_to_read": ["lib/admin/ops.ts", "app/api/admin/documents/[key]/route.ts", "app/api/admin/documents/[key]/revert/route.ts"],
+      "files_to_create": [],
+      "files_to_modify": ["lib/admin/ops.ts", "app/api/admin/documents/[key]/route.ts"],
+      "dependencies": ["task_001", "task_002"],
+      "implementation_steps": [
+        "既存の walk と同じくパスを正規化して manifest から Field を引く",
+        "文字列以外の値には触れない",
+        "PATCH は検証の前に op.value を変換する（変換後の値で検証する）",
+        "変換後の値が PUT のレスポンス data に載ることを確認する（フォームに反映されるため）"
+      ],
+      "done_definition": [
+        "URL を含むドキュメントを formatDocument に通すと該当欄だけが動画IDになる（出力で確認）",
+        "format の付かない欄の文字列が1文字も変わらない（出力で確認）",
+        "不正値を含むドキュメントが validateDocument でエラーになる（出力で確認）",
+        "npx tsc --noEmit と npm run build が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run build"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_004",
+      "title": "管理画面で always な欄を描画し、blur で変換して見せる",
+      "goal": "予告編を持たない作品でも4欄が出て、URL を貼って欄を離れると動画IDに変わるようにする。",
+      "scope": [
+        "group の子の絞り込みを『値がある、または always』に変える",
+        "field.format === 'youtube-id' のテキスト欄に onBlur 変換を足す",
+        "変換前後が同じなら onChange を呼ばない（不要な未保存フラグを立てない）",
+        "『undefined の子は描画しない』という描画契約をコンポーネント冒頭のコメントに明記する"
+      ],
+      "non_scope": [
+        "打鍵のたびの変換（編集しづらくなるため blur に限る）",
+        "多態ブロックの描画変更",
+        "他のフィールド型の変更"
+      ],
+      "files_to_read": ["app/(admin)/admin/docs/[key]/FieldEditor.tsx", "app/(admin)/admin/docs/[key]/DocumentEditor.tsx"],
+      "files_to_create": [],
+      "files_to_modify": ["app/(admin)/admin/docs/[key]/FieldEditor.tsx"],
+      "dependencies": ["task_001", "task_002"],
+      "implementation_steps": [
+        "lib/content/youtube.ts から extractYouTubeId を import する（クライアントコンポーネント）",
+        "always が付かない既存フィールドの挙動を変えない（privacy / terms の多態ブロックで確認）"
+      ],
+      "done_definition": [
+        "npm run build が通る",
+        "npm run lint の指摘が既存6件から増えない",
+        "task_007 の実操作で 6作品×4欄が出ることと、URL が blur でIDに変わることを確認できる"
+      ],
+      "verify_commands": ["npm run build", "npm run lint"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_005",
+      "title": "content/films.json の予告編キーを全6作品で揃える",
+      "goal": "保存済みの形を全作品でそろえ、DB と JSON の差分を読みやすくする。always と役割が違う（フォームの保証は task_002 側）。",
+      "scope": [
+        "6作品すべてに trailer を持たせる（キーは id / start / aria / label、順序も統一）",
+        "予告編が無い作品（01・02・03・06）は4キーとも空文字",
+        "04 は既存の id / aria / label を変えず start に空文字を足す",
+        "05 は既存の4つの値を一切変えない"
+      ],
+      "non_scope": [
+        "01・02・03・06 に実際の動画IDを入れること（予告編は未公開）",
+        "note や trailerModal の変更",
+        "作品の並び順・その他フィールドの変更"
+      ],
+      "files_to_read": ["content/films.json", "components/Films.tsx", "lib/content/types.ts"],
+      "files_to_create": [],
+      "files_to_modify": ["content/films.json", "lib/content/types.ts"],
+      "dependencies": [],
+      "implementation_steps": [
+        "git diff で 04・05 の既存値に変更が無いことを確認する（04 は start の追加のみ）",
+        "python3 -m json.tool で JSON として妥当なことを確認する",
+        "types.ts は FilmTrailer のコメント追記のみ（start? は任意のまま）"
+      ],
+      "done_definition": [
+        "全6要素が trailer の4キーを持つ",
+        "npx tsc --noEmit が通る",
+        "npm run verify:coverage が11ドキュメントすべて [ok]"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run verify:coverage"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_006",
+      "title": "読み上げ文・帯の文字が空でも成立するよう公開側に既定値を置く",
+      "goal": "動画IDだけ入れて保存しても、アクセシビリティと見た目が壊れないようにする。",
+      "scope": [
+        "aria が空なら『<作品タイトル>』の予告編を再生 を使う",
+        "label が空なら Trailer を使う"
+      ],
+      "non_scope": ["04・05 の既存の文言を変えること", "他の属性・クラスの変更"],
+      "files_to_read": ["components/Films.tsx", "content/films.json"],
+      "files_to_create": [],
+      "files_to_modify": ["components/Films.tsx"],
+      "dependencies": ["task_005"],
+      "implementation_steps": [
+        "既存2作品は値があるため既定値が使われないことを確認する",
+        "既定値の書式は 04・05 に入っている文言と同じにする"
+      ],
+      "done_definition": [
+        "npm run verify:text が『完全一致: 8ルート』で終わる",
+        "npx tsc --noEmit が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run verify:text"],
+      "risk_level": "low"
+    },
+    {
+      "task_id": "task_007",
+      "title": "機械検証と、管理画面での実操作・revert の確認",
+      "goal": "受け入れ基準1〜10を実測で満たすことを確認する。自己申告ではなく出力を根拠にする。",
+      "scope": [
+        "npx tsc --noEmit / npm run lint / npm run build / npm run verify:coverage / node scripts/verify-youtube-id.mjs",
+        "本番ビルドをローカル起動し、管理画面へログインして films の編集画面を取得",
+        "6作品すべてに予告編4欄が出ていることを数える",
+        "URL を貼った保存が動画IDになることを PUT で実測",
+        "不正値が 422 になり、入力が消えないことを実測",
+        "予告編を持たない作品にIDを入れて公開ページに再生ボタンが出ることを実測（CDP でクリックまで）",
+        "版1へ revert して4欄が残ることを実測（§9.3 の仮説の検証）",
+        "確認後、dev DB を db-seed --force で戻してから verify:text を実行"
+      ],
+      "non_scope": ["本番DBへの試し書き", "baseline の更新"],
+      "files_to_read": ["scripts/verify-text.sh", "docs/plans/trailer-admin/acceptance-checks.json"],
+      "files_to_create": [],
+      "files_to_modify": [],
+      "dependencies": ["task_001", "task_002", "task_003", "task_004", "task_005", "task_006"],
+      "implementation_steps": [
+        "検証は dev DB（.dev.vars）に対して行い、本番には触れない",
+        "verify:text は dev DB を読むので、試し書きを戻した後に実行する",
+        "失敗した項目は出力を添えてそのまま報告する（成功に見せる要約をしない）"
+      ],
+      "done_definition": [
+        "各検証コマンドの最終行を記録した",
+        "管理画面HTMLで『YouTube の動画ID』と『再生開始位置（秒）』が6回ずつ出ることを確認した",
+        "URL を貼った PUT の応答 data に動画IDが入っていることを確認した",
+        "不正値の PUT が 422 になることを確認した",
+        "revert 後も4欄が出ることを確認した",
+        "戻したあと verify:text が完全一致で終わることを確認した"
+      ],
+      "verify_commands": [
+        "npx tsc --noEmit",
+        "npm run lint",
+        "npm run build",
+        "npm run verify:coverage",
+        "node scripts/verify-youtube-id.mjs",
+        "npm run verify:text"
+      ],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_008",
+      "title": "ドキュメントを追随させてコミットする",
+      "goal": "次に触る人が、予告編の登録方法・§8.4 の例外・残りの欠落入力欄の申し送りを知った状態で読めるようにする。",
+      "scope": [
+        "CLAUDE.md に予告編の登録方法（URLを貼れること・不正値は422）を追記",
+        "README.md に §8.4 の例外として URL→ID 変換を追記",
+        "docs/PROGRESS.md に本修正の節（レビュー採否と §17 の申し送りを含む）を追加",
+        "実装と食い違った点があれば本計画書を先に更新する"
+      ],
+      "non_scope": [
+        "docs/implementation-plan.md（/admin 構築の正典）の書き換え",
+        "docs/content-inventory.md の抽出結果の改変"
+      ],
+      "files_to_read": ["CLAUDE.md", "README.md", "docs/PROGRESS.md"],
+      "files_to_create": [],
+      "files_to_modify": ["CLAUDE.md", "README.md", "docs/PROGRESS.md", "docs/plans/trailer-admin/implementation-plan.md"],
+      "dependencies": ["task_007"],
+      "implementation_steps": ["コミットメッセージに検証の実測結果を書く（通っていない項目は通っていないと書く）"],
+      "done_definition": ["git status がクリーン", "コミットメッセージに §13 の各コマンドの結果が書かれている"],
+      "verify_commands": [],
+      "risk_level": "low"
+    },
+    {
+      "task_id": "task_009",
+      "title": "デプロイと本番・dev 両DBへの反映",
+      "goal": "本番の管理画面で実際に予告編URLを登録できる状態にする。",
+      "scope": [
+        "本番・dev 両DBを backups/ へ退避",
+        "DB と content/*.json の全キー差分を取り、管理画面での編集が失われないことを確認",
+        "npm run deploy（コードを先に出す）",
+        "本番 → dev の順に db-seed.mjs --force",
+        "本番URLで受け入れ基準1〜10を実測"
+      ],
+      "non_scope": ["スキーマ変更", "シークレットの変更"],
+      "files_to_read": ["docs/plans/trailer-admin/implementation-plan.md"],
+      "files_to_create": [],
+      "files_to_modify": [],
+      "dependencies": ["task_008"],
+      "implementation_steps": [
+        "差分が想定（予告編キーの追加のみ）と違ったら止めて報告する",
+        "本番の接続情報は .dev.vars.prod-reference を使う（600・git 追跡外）"
+      ],
+      "done_definition": [
+        "本番8ルートが200で、変換元HTMLとの突き合わせが一致する",
+        "本番の管理画面で6作品に予告編4欄が出る",
+        "両DBの films が content/films.json と一致する"
+      ],
+      "verify_commands": ["npm run deploy", "node scripts/db-seed.mjs --force"],
+      "risk_level": "high"
+    }
+  ]
+}

@@ -358,17 +358,24 @@ export type TextLink = {
 
 /**
  * 予告編（変換元 `<button class="film__play" data-trailer="…">` 相当）。
- * `id` を持つ作品だけサムネイルに再生ボタンが出る。無い作品は静止画のまま。
+ * `id` が空でない作品だけサムネイルに再生ボタンが出る。空なら静止画のまま。
+ *
+ * `content/films.json` では全作品が4キーを持つ（未登録は空文字）。
+ * ただし各フィールドを任意にしてあるのは、**古いリビジョンへ revert したときや
+ * DB が旧形のときでも公開ページを落とさない**ため（`lib/content/load.ts` と同じ方針）。
  */
 export type FilmTrailer = {
-  /** YouTube の動画ID（`data-trailer`）。空文字なら再生ボタンを出さない。 */
+  /**
+   * YouTube の動画ID（`data-trailer`）。空文字なら再生ボタンを出さない。
+   * 管理画面では動画URLを貼れて、保存時にIDへ変換される（`lib/content/youtube.ts`）。
+   */
   id: string;
-  /** 再生開始秒（`data-trailer-start`）。変換元では 05 のみ "3"。 */
+  /** 再生開始秒（`data-trailer-start`）。空文字なら最初から。変換元では 05 のみ "3"。 */
   start?: string;
-  /** 再生ボタンの aria-label。 */
-  aria: string;
-  /** `.film__play-label` の文言（表示は CSS で大文字化される）。 */
-  label: string;
+  /** 再生ボタンの aria-label。空なら `components/Films.tsx` が作品名から作る。 */
+  aria?: string;
+  /** `.film__play-label` の文言。空なら `Trailer`（表示は CSS で大文字化される）。 */
+  label?: string;
 };
 
 /** 上映作品1本。`meta` は `<br>` を含むため Inline。 */

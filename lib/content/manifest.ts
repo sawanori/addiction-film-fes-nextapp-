@@ -2,6 +2,7 @@ import * as bundled from "@/lib/content/documents";
 import {
   createManifestBuilder,
   manifestPaths,
+  unify,
   type DocumentManifest,
   type Field,
 } from "@/lib/content/manifest-core";
@@ -58,9 +59,24 @@ export function documentDescription(key: string): string {
 
 const builder = createManifestBuilder(bundled as unknown as Record<string, unknown>);
 
-/** ドキュメント1件のフィールド定義。`doc` を渡さなければ同梱データの形を使う。 */
+/**
+ * ドキュメント1件のフィールド定義。`doc` を渡さなければ同梱データの形を使う。
+ *
+ * `doc` を渡すときは、**同梱JSON（正典）との「形の和」**から導出する。
+ * manifest は実データの形から機械導出しているので、DBの側で任意キーが欠けていると
+ * その項目がフォームから消え、**二度と入力できなくなる**（`FieldEditor` は値の無い
+ * 子項目を描画せず、`always` を宣言していても manifest にフィールドが無ければ効かない）。
+ *
+ * 実測した具体例: 予告編機能より前に作られたリビジョンへ revert すると、全作品から
+ * `trailer` が消えて manifest からも落ち、管理画面から予告編を再登録できなくなった。
+ * 正典と和をとることで、値が無くてもフィールド定義だけは残る。
+ * manifest は**形の導出にしか使わず**（値は `initialData` として別に渡す）、
+ * 保存時の許可リストが正典のぶんだけ広がるのは、まさに「消えた項目を入れ直せる」ために要る。
+ */
 export function buildManifest(key: DocumentKey, doc?: unknown): DocumentManifest {
-  return builder.buildManifest(key, documentLabel(key), doc ?? bundled[key]);
+  const canonical: unknown = bundled[key];
+  const shape = doc === undefined ? canonical : unify([canonical, doc]);
+  return builder.buildManifest(key, documentLabel(key), shape);
 }
 
 /** 全ドキュメントぶん。管理画面のダッシュボードで使う。 */

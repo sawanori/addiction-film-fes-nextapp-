@@ -46,12 +46,28 @@ npm start          # 本番ビルドの起動（見た目の差分検証はこ�
 | `Timetable` (client) | programme のみ。日付データは `DAYS` 配列1つからタブとシートの両方を生成する（片方だけ増やせない設計） |
 | `ScrollReveal` (client) | layout に1つだけ置く。`.rise:not(.is-in)` を IntersectionObserver（`rootMargin:'0px 0px -10% 0px'`, `threshold:0.08`）で拾い、クライアント遷移のたびに再スキャン |
 | `TrailerModal` (client) | 予告編の YouTube モーダル。`(public)/layout.tsx` がフッター直後に置くが、変換元で `<dialog>` を持つ index / programme 以外では null。`.film__play` は DOM から拾ってリスナーを付け、iframe は開いたとき生成・閉じたら破棄 |
+| `lib/content/youtube.ts` | 予告編の動画URL→動画ID変換。管理画面のサーバ側（`lib/admin/ops.ts`）とクライアント側（`FieldEditor`）が同じ規則を使う。回帰テストは `node scripts/verify-youtube-id.mjs` |
 | `Films` | index / programme で共有する上映作品グリッド。両ページ唯一の差異（04「一瞬の楽園」のクレジット）を `variant: "index" \| "programme"` で出し分ける。`trailer` を持つ作品（04・05）だけ `.film__play` ボタンを描画 |
 | `SmartLink` | `#` 始まりは素の `<a>`、それ以外の内部リンクは `next/link`。ヘッダー/フッターの内部リンクはこれを通す |
 
 `lib/style.ts` の `styleVars()` / `StyleWithVars` は、`style={{ "--d": ".08s" }}` のようなカスタムプロパティを通すための型。**`as CSSProperties` で object 全体をアサートしない**（通常プロパティの typo が型チェックをすり抜けるため）。
 
 import alias は `@/*` → リポジトリルート。
+
+## 管理画面のフォーム定義（manifest）で覚えておくこと
+
+- **manifest は手書きせず実データの形から機械導出する。** ただし `buildManifest` は
+  同梱JSON（正典）と**保存データの形の和**をとる。実データ側で任意キーが欠けると
+  その項目がフォームから消え、二度と入力できなくなるため（予告編の項目が消えた版へ
+  revert したときに実測した。`docs/plans/trailer-admin/implementation-plan.md` §9.3）。
+- **`FieldEditor` は値が `undefined` の子項目を描画しない。** `privacy` / `terms` の
+  `blocks[]` のように要素ごとに形が違う配列で、段落ブロックに箇条書き用の欄が出るのを
+  防ぐための仕様。値が無くても必ず出したい項目は `manifest-core.ts` の `ALWAYS_SHOWN`
+  にパスを足す（現在は予告編の5パスのみ）。**この理由で描画されない入力欄が、
+  予告編以外にまだ約100件ある**（同ファイル §17 の申し送り）。
+- **保存時に文字列は加工しない**（改行コードを除く。計画 §8.4）。唯一の例外は
+  `manifest-core.ts` の `PATH_FORMATS` に挙げた欄で、現在は予告編の動画ID欄だけ。
+  動画URLを貼るとIDへ変換し、YouTube と解釈できない非空の値は 422 で拒否する。
 
 ## 公開前の未確定事項
 
@@ -63,3 +79,15 @@ import alias は `@/*` → リポジトリルート。
 ## 変更後の検証
 
 `npm run build` と `npx tsc --noEmit` を通すだけでは足りない。マークアップに触れた場合は `npm start` で本番ビルドを起動し、8ルートすべてを取得して**修正前後で可視テキストと class 集合が変化していない**ことを確認する。変換元との突き合わせが必要なら `/Users/noritakasawada/AI_P/addiction-film-festival` の対応するHTMLを読む。
+
+管理画面まわりを触ったときは、加えて次を通す。
+
+```bash
+npm run verify:coverage              # 全リーフが manifest から編集できるか
+node scripts/verify-youtube-id.mjs   # 予告編の動画URL→動画ID変換の規則
+npm run verify:text                  # 公開8ルートの DOM パス比較（dev DB を読む）
+```
+
+`verify:text` は `.dev.vars` の dev DB を読むので、**管理画面で試し書きをしたら
+`node scripts/db-seed.mjs --force` で戻してから**実行する。戻さずに差分が出たときに
+baseline を更新してはいけない。

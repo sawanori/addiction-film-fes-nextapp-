@@ -2,7 +2,13 @@ import type { NextRequest } from "next/server";
 import { requireAdminApi } from "@/lib/admin/session";
 import { checkCsrf, jsonError, jsonOk, readJsonObject } from "@/lib/admin/request";
 import { readDocument, writeDocument, listRevisions } from "@/lib/admin/documents";
-import { applyOps, validateDocument, normalizeDocument, type Op } from "@/lib/admin/ops";
+import {
+  applyOps,
+  validateDocument,
+  normalizeDocument,
+  formatDocument,
+  type Op,
+} from "@/lib/admin/ops";
 import { buildManifest, DOCUMENT_KEYS, type DocumentKey } from "@/lib/content/manifest";
 
 export const dynamic = "force-dynamic";
@@ -126,8 +132,11 @@ export async function PUT(
     return jsonError("conflict", 409, { revision: stored.revision });
   }
 
-  const next = normalizeDocument(body.data);
-  const errors = validateDocument(next, buildManifest(key, stored.data));
+  const manifest = buildManifest(key, stored.data);
+  // 改行を揃える → format 付きの欄を整形（動画URL→動画ID）→ 全リーフを検証、の順。
+  // 整形を検証より先に置くのは、貼られた動画URLを「不正な値」として弾かないため。
+  const next = formatDocument(normalizeDocument(body.data), manifest);
+  const errors = validateDocument(next, manifest);
   if (errors.length > 0) return jsonError("validation_failed", 422, { errors });
 
   const written = await writeDocument(key, stored.revision, next, note);
