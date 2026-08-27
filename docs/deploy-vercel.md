@@ -8,14 +8,45 @@ Vercel へ移したあとも当面は両方動くので、切り替えが済む�
 
 ---
 
-## 0. 事前に決めておくこと（人が決める。ここだけは自動化できない）
+## クイックスタート（先方へそのまま渡せる手順）
 
-| 決めること | 選択肢 | 補足 |
-|---|---|---|
-| GitHub リポジトリの持ち主 | 現在は `sawanori/addiction-film-fes-nextapp-`（private 想定） | 先方が管理するなら Transfer するか、先方の Organization に移す。Vercel からは「連携したアカウントが読めるリポジトリ」しか選べない |
-| Vercel のアカウント / チーム | 制作側 or 先方 | 請求先と、あとで誰が環境変数を触れるかが決まる。**先方管理にするなら先方のチームで作る** |
-| Turso（DB）の持ち主 | 現在は制作側の Turso アカウント | 掲載内容は全部ここに入っている。先方管理にするならDBも移す（後述 §5） |
-| 独自ドメイン | 未定 | 決まっていなければ `*.vercel.app` のままで問題ない |
+1. GitHub の当該リポジトリを clone（または Fork / Transfer で自分のアカウントに置く）
+2. Vercel で **Add New → Project → Import**。Framework Preset が **Next.js** になる
+3. **Deploy を押す前に**、Environment Variables に4つ登録する（値は制作側から受け取る）
+   - `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` / `ADMIN_PASSWORD_PBKDF2` / `ADMIN_SESSION_SECRET`
+   - **Production と Preview で値を分ける**（理由は §2。同じにすると
+     プレビューURLから本番の掲載内容を書き換えられる）
+4. Deploy
+5. 発行されたURLで、公開ページの表示と `/admin` のログインを確認する
+
+ビルド設定・出力ディレクトリ・インストールコマンドは**すべて既定のまま**でよい。
+Node のバージョンも `package.json` の `engines.node`（22.x）が効くので触らない。
+
+実測済み: まっさらな clone から `npm ci` → `npm run build` が通ること、
+**環境変数を1つも入れない状態でもビルドが成功し、公開8ページが 200 で表示される**こと
+（その場合はリポジトリ同梱の `content/*.json` の内容が出て、管理画面だけが止まる）。
+
+---
+
+## 0. 方針（2026-08-27 に決定）
+
+**先方がリポジトリを pull し、先方の Vercel アカウントでプロジェクトを立てる。**
+制作側は Vercel の操作を代行しない。
+
+そのために先方へ渡すものは2つだけ。
+
+1. **GitHub リポジトリへのアクセス**（現在 `sawanori/addiction-film-fes-nextapp-`）。
+   Collaborator に招待するか、Transfer する。Vercel の Import 画面には
+   「連携した GitHub アカウントが読めるリポジトリ」しか出ないため、
+   **先方自身のアカウントに読める状態**にしておく必要がある。
+2. **環境変数4つの値**（§2）。**リポジトリには入っていない**ので別途受け渡す。
+   チャットやメールに平文で貼らず、パスワードマネージャの共有機能などを使う。
+
+残る唯一の判断は **Turso（DB）をどうするか**（§5）。
+現行DBの接続情報をそのまま渡せば、その日から本番の掲載内容が出る。
+先方が自前のDBを持ちたい場合は §5-A の手順で作り直す。
+
+独自ドメインは未定でよい（`*.vercel.app` のままで動く）。
 
 ---
 
@@ -128,26 +159,34 @@ npm run build && BASE_URL=https://<デプロイURL> npm run verify:text
 
 ---
 
-## 5. Turso（DB）を先方へ移す場合
+## 5. Turso（DB）の扱い
 
-掲載内容はすべて Turso に入っている。移管の選択肢は2つ。
+掲載内容はすべて Turso に入っている。選択肢は2つ。
 
-**A. データベースごと引き渡す** — Turso の組織/グループを移管するか、
-先方のアカウントで新しいDBを作って中身を移す。後者の手順:
+### A. 先方が自前のDBを作る
+
+Turso でDBを作ってから、リポジトリのスクリプトでスキーマとデータを入れる。
 
 ```bash
-# 1. 現行の内容を books アップ（backups/ は git 管理外）
-node scripts/db-migrate.mjs   # 新DBにスキーマを作る
-node scripts/db-seed.mjs      # content/*.json を投入
+# 接続情報を .env.local に書いてから（.dev.vars でも可）
+npm run db:migrate   # テーブルを作る（content_documents / content_revisions /
+                     #                login_attempts / admin_settings / schema_migrations）
+npm run db:seed      # content/*.json の内容を投入する
 ```
 
-投入後に管理画面から入れた変更がある場合は、`content/*.json` にも反映してから
-seed するか、旧DBの `content_documents` をコピーする。
+**注意**: `content/*.json` は**リポジトリ同梱の正典データ**であって、現行サイトの
+最新状態とは限らない。管理画面から入れた変更は現行DBにしかないので、
+最新の内容を引き継ぐなら制作側から現行DBの中身（`content_documents`）を書き出して渡す。
 
-**B. 制作側が持ち続ける** — 環境変数だけ Vercel に入っていれば動く。
-運用中の編集は管理画面で完結するので、先方が Turso を触る必要はない。
+### B. 現行のDBをそのまま使う
 
-どちらにするかは §0 で決めておく。
+制作側の Turso の接続情報（`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN`）を渡すだけ。
+移行作業もデータ移送も要らず、その日から本番の掲載内容が出る。
+運用中の編集は管理画面で完結するので、先方が Turso の管理画面を触る必要はない。
+
+移行期間中に Cloudflare 版と Vercel 版を並行させる場合、**同じDBを見せておくと
+両方の表示が自動で揃う**（DBは1つ、フロントが2つという状態になる）。
+切り替えが済んだら Cloudflare 側を止める。
 
 ---
 
