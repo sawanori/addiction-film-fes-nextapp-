@@ -8,8 +8,16 @@ import type {
   SiteLink,
 } from "@/lib/content/types";
 
+/**
+ * リンクとして描画する項目か。
+ *
+ * **キーの有無ではなく「`base` に中身があるか」で判定する。** 管理画面から
+ * リンク先を空にした項目（テキストだけの項目にリンク先の欄を出しているため、
+ * 空のまま保存されうる）を `href=""` のリンクにしてしまわないため。
+ * 変換元では「よみうりホール」「東京・有楽町」がテキストだけの項目にあたる。
+ */
 function hasLink(item: SiteFooterItem): item is SiteLink {
-  return "base" in item;
+  return "base" in item && typeof item.base === "string" && item.base !== "";
 }
 
 /**

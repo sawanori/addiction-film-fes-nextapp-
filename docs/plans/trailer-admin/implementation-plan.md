@@ -354,15 +354,47 @@ C が「問題なし」と明示した項目（v2 でも変更しない）: 空�
 `unify` / `stringFieldType` / `blankTemplate` / `manifestPaths` / `verify:coverage` への副作用、
 `itemTitle`、新規追加 `template`、`Films.tsx` の既定値による公開DOMへの影響、保存型XSS。
 
-## 17. 申し送り（別案件）
+## 17. 予告編以外の欠落入力欄（v3・2026-08-27 に対応済み）
 
-§3.5 (a) の**予告編以外の欠落入力欄が約100件**残っている。実測で確認した主なもの:
+§3.5 (a) は当初「約100件」と書いたが、**分類して数え直すと35件**だった
+（残り85件は §3.5 (b) の多態ブロックで、出さないのが正しい）。この35件も同日に開いた。
 
-- `films.items[0].delay`（01 だけ `delay` が無い）
-- `programme.guide.rows[0].id` / `.delay`、`programme.venue.boxes[].p2Cls` / `.variant`
-- `tickets.price.boxes[0].delay`、`about` / `news` の各種 `delay` / `variant`
-- `site.footer.columns[4].items[].base` / `.hash`（テキストだけの項目）
+### 17.1 内訳（26パス・35欄）
 
-いずれも `ALWAYS_SHOWN` に足せば開くが、**空文字を保存したときに公開DOMが変わらないか**を
-対象ごとに確かめる必要がある（`variant` や `cls` は className の分岐に効く）。
-`privacy` / `terms` の多態ブロック（§3.5(b)）は**対象外**であることに注意。
+| 項目 | パス | 欄数 |
+|---|---|---|
+| 表示アニメの遅れ | `quick.cards[]` / `approach.cards[]` / `format.boxes[]` / `format.rows[]` / `news.items[]` / `items[]` / `background.boxes[]` / `approach.items[]` / `org.boxes[]` / `partner.boxes[]` / `archive.items[]` / `latest.articles[]` / `guide.rows[]` / `venue.boxes[]` / `price.boxes[]` の `.delay` | 17 |
+| 見た目の種類 | `background.boxes[]` / `approach.cards[]` / `format.boxes[]` / `hero.actions[]` / `latest.articles[]` / `venue.boxes[]` の `.variant` | 7 |
+| programme 用クレジット | `items[].metaProgramme` | 5 |
+| フッターのリンク先 | `footer.columns[].items[].base` / `.hash` | 4 |
+| リンク用のID | `guide.rows[].id` | 1 |
+| 本文2の見た目 | `venue.boxes[].p2Cls` | 1 |
+
+### 17.2 開ける前に必要だったコード側の手当て（2件）
+
+`ALWAYS_SHOWN` に足すだけでは済まない項目が2つあった。いずれも**空欄で保存されたときに
+公開DOMが変わってしまう**もので、先に描画側を直した。
+
+- **`components/Films.tsx` の `metaProgramme`**: `film.metaProgramme ? … : film.meta` は
+  **空配列を真と判定する**。書きかけて消すと `[]` が保存され、programme のクレジットが
+  丸ごと消える。`?.length` で見るよう変更した。
+- **`components/SiteFooter.tsx` の `hasLink`**: `"base" in item` という**キーの有無**だけの
+  判定だったため、空文字の `base` が `href=""` のリンクになる。`base` に中身があるかで
+  判定するよう変更した。既存リンクのリンク先を空にした場合にも効く（元からあった穴）。
+
+`delay` / `variant` / `id` / `p2Cls` は、描画側が `x ? … : {}` か等値比較のため手当て不要だった。
+
+### 17.3 検証
+
+「新しく開けた35欄をすべて空欄のまま保存した状態」を dev DB に直接作り、公開8ルートを
+baseline と突き合わせて**完全一致**を確認した（`空欄＝未設定` が DOM 上で等価であることの証明）。
+そのうえで実際に値を入れて機能することも実測した:
+
+- フッターのテキスト項目「よみうりホール」に `base=/programme` `hash=#venue` を入れて保存 →
+  公開ページが `<a href="/programme#venue">よみうりホール</a>` になった
+- 04 の programme 用クレジットを空配列にして保存 → 詳細クレジットが消え、短縮版（`meta`）に戻った
+
+### 17.4 残り（対応しない）
+
+`privacy` / `terms` の多態ブロック **85件**は、manifest が形の和であるがゆえに出ているだけで、
+段落ブロックに箇条書き用の欄を出すのは誤り。**現在の挙動が正しいので開けない。**

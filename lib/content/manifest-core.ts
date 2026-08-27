@@ -185,11 +185,54 @@ const PATH_FORMATS: Record<string, "youtube-id"> = {
  * 一律に出すと段落ブロックに箇条書き用の欄が出てしまう。
  */
 const ALWAYS_SHOWN = new Set([
+  // 予告編（films）
   "items[].trailer",
   "items[].trailer.id",
   "items[].trailer.start",
   "items[].trailer.aria",
   "items[].trailer.label",
+
+  // 表示アニメの遅れ。値が入っている要素にしか欄が出ず、2枚目以降だけ時差が付いている
+  // セクションでは1枚目に入力できなかった。空文字は現行と同じDOM（描画側は
+  // `x.delay ? {style:…} : {}` の形で、空文字は偽として扱われる）
+  "quick.cards[].delay",
+  "approach.cards[].delay",
+  "format.boxes[].delay",
+  "format.rows[].delay",
+  "news.items[].delay",
+  "items[].delay",
+  "background.boxes[].delay",
+  "approach.items[].delay",
+  "org.boxes[].delay",
+  "partner.boxes[].delay",
+  "archive.items[].delay",
+  "latest.articles[].delay",
+  "guide.rows[].delay",
+  "venue.boxes[].delay",
+  "price.boxes[].delay",
+
+  // 見た目の種類。描画側は `variant === "dark"` のような等値比較なので、
+  // 空文字は「指定なし」と同じ既定の見た目になる
+  "background.boxes[].variant",
+  "approach.cards[].variant",
+  "format.boxes[].variant",
+  "hero.actions[].variant",
+  "latest.articles[].variant",
+  "venue.boxes[].variant",
+
+  // その他の任意項目。いずれも描画側が空文字を偽として扱う
+  "guide.rows[].id",
+  "venue.boxes[].p2Cls",
+
+  // programme だけ別のクレジットにする欄（現在は 04 のみ）。
+  // 空配列は `components/Films.tsx` が「未入力」とみなして `meta` に戻す
+  "items[].metaProgramme",
+
+  // フッターのリンク先。テキストだけの項目（「よみうりホール」など）に欄が出ておらず、
+  // 後からリンクにできなかった。空のままなら `components/SiteFooter.tsx` の
+  // `hasLink` がテキストとして描画する
+  "footer.columns[].items[].base",
+  "footer.columns[].items[].hash",
 ]);
 
 /** キー名ごとの表示名（パス指定が無いときのフォールバック）。 */

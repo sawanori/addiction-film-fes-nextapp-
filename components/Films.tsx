@@ -59,7 +59,11 @@ export default function Films({
             <span className="film__en">{film.en}</span>
             <span className="film__meta">
               {renderInline(
-                variant === "programme" && film.metaProgramme
+                // 空配列は「未入力」とみなして `meta` に戻す。管理画面から
+                // programme 用クレジットを入力できるようにしたので、書きかけて消すと
+                // `[]` が保存されうる。`film.metaProgramme` の真偽だけで見ると
+                // `[]` は真になり、クレジットが丸ごと消えてしまう
+                variant === "programme" && film.metaProgramme?.length
                   ? film.metaProgramme
                   : film.meta
               )}
