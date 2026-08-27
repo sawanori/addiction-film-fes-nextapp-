@@ -193,14 +193,15 @@ content="noindex">` も入れてある。`sitemap.xml` のドメインは `https
   - ユーティリティの「JA」リンクは各ページ自身の URL（`/`・`/about`…）
 - **SmartLink** — `#` 始まりの同一ページ内アンカーは素の `<a>`、それ以外の内部リンクは `next/link` に出し分けるラッパー。
 - **Films** — index / programme で完全同一の上映作品グリッド。唯一の差異（04「一瞬の楽園」のクレジットが index=短縮版／programme=全文）は `variant` prop で出し分け。
-- **Hero / Timetable / NewsletterForm / ScrollReveal** — 下記 script.js 移植を参照。
+- **Hero / Timetable / TrailerModal / ScrollReveal** — 下記 script.js 移植を参照。
 
-### script.js の移植（4つの IIFE → React）
+### script.js の移植（5つの IIFE → React）
 
 - **ハンバーガーメニュー** → `SiteHeader` 内で `useState` 管理。`is-open`・`aria-expanded`・`aria-label` を state から算出し、`html`/`body` の `nav-open` 付け外しと Escape 監視は `useEffect`。ナビ内リンクのクリックは `<nav>` の onClick で委譲して閉じる。
 - **ヒーロースライドショー** → `components/Hero.tsx`。6000ms 巡回・ドット連動・`prefers-reduced-motion` で自動送り停止・`visibilitychange` で停止/再開、は変換元どおり。初期 state は0なので SSR 出力は元の静的HTMLと同じ（1枚目が `is-active`）。
 - **スクロールリビール** → `components/ScrollReveal.tsx` を layout に1つ配置。`.rise` は各ページ（Server Component）側が描画するため、ここだけは `document.querySelectorAll(".rise:not(.is-in)")` で拾う共通フック相当の実装（`useRevealOnScroll` の要件どおり最上位で1回だけ動く形）。クライアント遷移のたびに再スキャンする。`rootMargin: '0px 0px -10% 0px'`・`threshold: 0.08`・IO非対応時の全件 `is-in` 付与は元どおり。
 - **タイムテーブルの日付スライド** → `components/Timetable.tsx`。トラックは `useRef`、現在日は `useState`+ref。スワイプは CSS スクロールスナップ任せで、タブ/矢印/キー（←→）は `scrollTo`（reduced-motion 時 `behavior:'auto'`）、スクロール時は rAF スロットルで `scrollLeft/clientWidth` から sync、リサイズで位置合わせ直し、端で矢印 `disabled` — すべて元どおり。初期SSRで `data-dir=-1` の矢印が `disabled` 付きで出るのは、元サイトで script.js 実行直後の状態と同じ。
+- **予告編モーダル** → `components/TrailerModal.tsx` を `(public)/layout.tsx` のフッター直後（変換元と同じ位置）に1つ配置。変換元で `<dialog id="trailerModal">` を持つのは index / programme だけなので、それ以外のルートでは null を返す。`.film__play` ボタンは `Films`（Server Component）が `data-trailer` / `data-trailer-start` 属性つきで描画し、リスナーはスクロールリビールと同じく DOM から拾って付ける（クライアント遷移では `pathname` を依存に付け直す）。iframe は開いたとき生成・閉じたら state を null に戻して破棄、`youtube-nocookie.com` ドメイン、`html`/`body` の `modal-open`、背景クリック・Esc で閉じる挙動 — すべて元どおり。開いたまま別ルートへ遷移した場合の後片付け（スクロールロック解除）は effect の cleanup で行う。
 
 ### CSS・フォント・メタ
 
@@ -216,5 +217,5 @@ content="noindex">` も入れてある。`sitemap.xml` のドメインは `https
   - ハンバーガーメニューは遷移後に開きっぱなしにならないよう、`pathname` 変化時に閉じる処理を追加（元はページ再読み込みで結果的に閉じていた）。
   - スクロールリビールは遷移のたびに新しい `.rise` を拾い直す。
 - **フレームワーク由来の追加要素**（見た目・文言には影響なし）：`app/favicon.ico` 由来の `<link rel="icon">`、`loading="lazy"` でない `<img>` への `<link rel="preload" as="image">`（LCP 最適化）、Next のJS/CSSチャンク参照。
-- `onsubmit="return false"` は `onSubmit` の `preventDefault()` に置き換え（`NewsletterForm`）。
+- 「Stay in the Loop」メール登録セクションは 2026年8月にチケット手売り化で変換元から削除されたため、こちらも `NewsletterForm` コンポーネントごと削除した（変換元 `5fe3163` 追随。`.newsletter` / `.social` の CSS 定義は変換元と同じく残している）。
 - 画像はすべて通常の `<img>`（`next/image` 不使用）。`@next/next/no-img-element` の ESLint 警告は仕様どおり許容。`npm run build`（型チェック含む）と `npx tsc --noEmit` は両方通過済み。

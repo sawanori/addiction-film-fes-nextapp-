@@ -55,6 +55,15 @@ const PATH_LABELS: Record<string, [label: string, hint?: string]> = {
   "items[].meta": ["補足情報", "製作会社など。1行ずつ足せます"],
   "items[].d": ["作品紹介文"],
   "items[].metaProgramme": ["補足情報（programme 用）", "programme ページだけ別の文言にする場合に使います"],
+  "items[].trailer": ["予告編", "YouTube の動画IDを入れた作品だけ、サムネイルに再生ボタンが出ます"],
+  "items[].trailer.id": ["YouTube の動画ID", "動画URLの v= の後ろの英数字。空欄なら再生ボタンを出しません"],
+  "items[].trailer.start": ["再生開始位置（秒）", "例: 3。空欄なら最初から再生します"],
+  "items[].trailer.aria": ["再生ボタンの読み上げ文", "例: 『一瞬の楽園』の予告編を再生。画面には出ません"],
+  "items[].trailer.label": ["再生ボタンの帯の文字", "例: Trailer"],
+  "trailerModal": ["予告編の再生画面", "予告編を開いたときに出る枠。index と programme で共通です"],
+  "trailerModal.title": ["見出しの初期値", "開くと作品タイトルに置き換わるため、通常は画面に出ません"],
+  "trailerModal.close": ["閉じるボタンの文字"],
+  "trailerModal.note": ["注記", "再生画面の下に出る小さな文"],
 
   // index（トップページ）
   "hero": ["ファーストビュー", "トップページを開いて最初に見える大きな部分"],
@@ -81,11 +90,6 @@ const PATH_LABELS: Record<string, [label: string, hint?: string]> = {
   "manifesto": ["宣言文"],
   "manifesto.mark": ["引用符などの記号"],
   "manifesto.by": ["署名"],
-  "newsletter": ["メール登録欄"],
-  "newsletter.form.placeholder": ["入力欄の薄い文字"],
-  "newsletter.form.button": ["ボタンの文字"],
-  "newsletter.form.ariaLabel": ["入力欄の説明", "読み上げ用。画面には出ません"],
-  "newsletter.social": ["SNSリンク"],
   "news.readLabel": ["「続きを読む」の文字"],
 
   // site（ヘッダー・フッター）
@@ -247,7 +251,8 @@ const FIELD_LABELS: Record<string, [label: string, hint?: string]> = {
   quick: ["案内カード"],
   navigator: ["ナビゲーター"],
   manifesto: ["宣言文"],
-  newsletter: ["メール登録"],
+  trailer: ["予告編"],
+  trailerModal: ["予告編の再生画面"],
   timetable: ["タイムテーブル"],
   days: ["日程"],
   arrows: ["前後移動ボタン"],

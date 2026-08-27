@@ -34,9 +34,9 @@ npm start          # 本番ビルドの起動（見た目の差分検証はこ�
 
 `app/` の8ルート（`/`, `/about`, `/programme`, `/tickets`, `/news`, `/privacy`, `/terms`, `/legal`）はすべて Server Component で、変換元HTMLの `<main>` 相当をそのまま TSX 化したもの。ページ固有の `title` / `description` は各 `page.tsx` の `export const metadata`。全ページ共通の `noindex, nofollow, noarchive` は `app/layout.tsx` の `metadata.robots`。
 
-`app/layout.tsx` が `SiteHeader` / `SiteFooter` / `ScrollReveal` を全ページに置く。ルート遷移では再マウントされない点に注意（`SiteHeader` は `pathname` 変化を `useEffect` で拾ってメニューを閉じている）。
+`app/(public)/layout.tsx` が `SiteHeader` / `SiteFooter` / `TrailerModal` / `ScrollReveal` を公開8ページに置く。ルート遷移では再マウントされない点に注意（`SiteHeader` は `pathname` 変化を `useEffect` で拾ってメニューを閉じ、`TrailerModal` は `pathname` を依存に取り直してボタンへリスナーを付け直す）。
 
-`components/` は変換元 `script.js` の4つの IIFE と、ページ間で重複していたマークアップの受け皿：
+`components/` は変換元 `script.js` の5つの IIFE と、ページ間で重複していたマークアップの受け皿：
 
 | ファイル | 役割 |
 |---|---|
@@ -45,8 +45,8 @@ npm start          # 本番ビルドの起動（見た目の差分検証はこ�
 | `Hero` (client) | ヒーロースライドショー。6000ms 巡回・ドット連動・`prefers-reduced-motion` で自動送り停止・`visibilitychange` で停止/再開 |
 | `Timetable` (client) | programme のみ。日付データは `DAYS` 配列1つからタブとシートの両方を生成する（片方だけ増やせない設計） |
 | `ScrollReveal` (client) | layout に1つだけ置く。`.rise:not(.is-in)` を IntersectionObserver（`rootMargin:'0px 0px -10% 0px'`, `threshold:0.08`）で拾い、クライアント遷移のたびに再スキャン |
-| `NewsletterForm` (client) | 変換元の `onsubmit="return false"` を `preventDefault()` に置き換えたもの |
-| `Films` | index / programme で共有する上映作品グリッド。両ページ唯一の差異（04「一瞬の楽園」のクレジット）を `variant: "index" \| "programme"` で出し分ける |
+| `TrailerModal` (client) | 予告編の YouTube モーダル。`(public)/layout.tsx` がフッター直後に置くが、変換元で `<dialog>` を持つ index / programme 以外では null。`.film__play` は DOM から拾ってリスナーを付け、iframe は開いたとき生成・閉じたら破棄 |
+| `Films` | index / programme で共有する上映作品グリッド。両ページ唯一の差異（04「一瞬の楽園」のクレジット）を `variant: "index" \| "programme"` で出し分ける。`trailer` を持つ作品（04・05）だけ `.film__play` ボタンを描画 |
 | `SmartLink` | `#` 始まりは素の `<a>`、それ以外の内部リンクは `next/link`。ヘッダー/フッターの内部リンクはこれを通す |
 
 `lib/style.ts` の `styleVars()` / `StyleWithVars` は、`style={{ "--d": ".08s" }}` のようなカスタムプロパティを通すための型。**`as CSSProperties` で object 全体をアサートしない**（通常プロパティの typo が型チェックをすり抜けるため）。

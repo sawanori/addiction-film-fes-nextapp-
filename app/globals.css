@@ -306,6 +306,10 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;}
 
 /* ---------- 部門グリッド（非対称・タイポカード） ---------- */
 .sections-grid{display:grid;grid-template-columns:1.24fr 1fr 1fr;gap:16px;}
+/* カードが2枚のとき（3つ目のアプローチ＝啓発ノベルティを企画から取り下げたため）。
+   3カラムのままだと右端に列がひとつ空くので、先頭を広く取る比率は保ったまま詰める。
+   1080px 以下は下の .sections-grid{1fr 1fr} が効くので、この指定は不要 */
+.sections-grid--2{grid-template-columns:1.24fr 1fr;}
 .scard{
   position:relative;display:flex;flex-direction:column;justify-content:space-between;
   background:var(--ink);color:var(--white);padding:26px;min-height:290px;overflow:hidden;
@@ -386,6 +390,61 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;}
 }
 .film__d{display:block;margin-top:10px;font-size:13.5px;line-height:1.95;max-width:60ch;}
 .films__note{margin-top:clamp(20px,2.4vw,32px);font-size:12.5px;color:var(--mute-ink);}
+
+/* ---------- 予告編（サムネイルをクリックでモーダル再生） ----------
+   予告編が公開されている作品にだけ .film__play を入れる。無い作品は静止画のまま。
+   ボタンは写真全面を覆う。番号と時刻の帯（z-index:2）より上に置くが、地は透明なので帯は見える。 */
+.film__play{
+  position:absolute;inset:0;z-index:3;
+  display:block;width:100%;padding:0;border:0;background:transparent;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+}
+.film__play::before{
+  content:"";position:absolute;top:50%;left:50%;
+  width:62px;height:62px;border-radius:999px;background:var(--ink);
+  transform:translate(-50%,-50%);
+  transition:transform .35s ease,background-color .35s ease;
+}
+.film__play::after{
+  content:"";position:absolute;top:50%;left:50%;
+  border-style:solid;border-width:9px 0 9px 15px;
+  border-color:transparent transparent transparent var(--white);
+  transform:translate(-40%,-50%);
+}
+.film__play:hover::before,.film__play:focus-visible::before{
+  transform:translate(-50%,-50%) scale(1.12);background:var(--red-dp);
+}
+.film__play:focus-visible{outline:3px solid var(--ink);outline-offset:-3px;}
+.film__play-label{
+  position:absolute;left:0;bottom:0;
+  background:var(--ink);color:var(--bone);
+  font-family:var(--font-en);font-weight:700;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  padding:5px 10px;
+}
+
+/* 予告編モーダル。<dialog> なので Esc と背景の暗転はブラウザ任せ */
+.vmodal{
+  position:fixed;inset:0;margin:0;padding:0;border:0;background:transparent;
+  width:100%;max-width:none;height:100%;max-height:none;
+  align-items:center;justify-content:center;
+}
+.vmodal[open]{display:flex;}
+.vmodal::backdrop{background:rgba(10,10,10,.9);}
+.vmodal__panel{width:min(1100px,92vw);}
+.vmodal__head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px;}
+.vmodal__t{
+  margin:0;color:var(--white);font-weight:900;font-size:clamp(15px,1.6vw,20px);line-height:1.5;
+}
+.vmodal__close{
+  flex:0 0 auto;background:var(--white);color:var(--ink);border:0;cursor:pointer;
+  font-family:var(--font-en);font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  padding:9px 14px;
+}
+.vmodal__close:hover{background:var(--red-dp);color:var(--white);}
+.vmodal__frame{position:relative;aspect-ratio:16/9;background:var(--ink);}
+.vmodal__frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+.vmodal__note{margin:10px 0 0;font-size:12px;letter-spacing:.02em;color:rgba(255,255,255,.72);}
+html.modal-open,body.modal-open{overflow:hidden;}
 
 /* ---------- フェスティバル・ナビゲーター ----------
    暗い面（#111）に置く。写真には上映作品と同じ網点をかけて、刷り物の世界観を保つ。

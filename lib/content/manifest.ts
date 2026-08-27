@@ -39,7 +39,7 @@ export function documentLabel(key: string): string {
 
 /** 一覧と編集画面に出す「このドキュメントを直すとどこが変わるか」の説明。 */
 const DOCUMENT_DESCRIPTIONS: Record<string, string> = {
-  index: "トップページの本文。ファーストビュー・案内カード・ナビゲーター紹介・宣言文・メール登録欄。",
+  index: "トップページの本文。ファーストビュー・案内カード・ナビゲーター紹介・宣言文。",
   about: "About ページの本文。背景・取り組み・開催概要・主催体制・協賛の案内・お問い合わせ。",
   programme: "Programme ページの本文。見出し・鑑賞の案内・タイムテーブルまわり・会場案内。",
   tickets: "Tickets ページの本文。料金表・よくある質問。",

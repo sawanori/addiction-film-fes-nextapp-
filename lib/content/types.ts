@@ -356,6 +356,21 @@ export type TextLink = {
   href: string;
 };
 
+/**
+ * 予告編（変換元 `<button class="film__play" data-trailer="…">` 相当）。
+ * `id` を持つ作品だけサムネイルに再生ボタンが出る。無い作品は静止画のまま。
+ */
+export type FilmTrailer = {
+  /** YouTube の動画ID（`data-trailer`）。空文字なら再生ボタンを出さない。 */
+  id: string;
+  /** 再生開始秒（`data-trailer-start`）。変換元では 05 のみ "3"。 */
+  start?: string;
+  /** 再生ボタンの aria-label。 */
+  aria: string;
+  /** `.film__play-label` の文言（表示は CSS で大文字化される）。 */
+  label: string;
+};
+
 /** 上映作品1本。`meta` は `<br>` を含むため Inline。 */
 export type Film = {
   no: string;
@@ -378,13 +393,24 @@ export type Film = {
    * 04 にだけこのフィールドがある。
    */
   metaProgramme?: Inline;
+  /** 予告編が公開されている作品にだけある（変換元では 04・05）。 */
+  trailer?: FilmTrailer;
   d: string;
+};
+
+/** 予告編モーダル（`.vmodal`）の文言。index / programme の両ページ末尾に同じものが出る。 */
+export type FilmsTrailerModal = {
+  /** `.vmodal__t` の初期値。開くと作品タイトルに置き換わる。 */
+  title: string;
+  close: string;
+  note: string;
 };
 
 export type FilmsDocument = {
   items: Film[];
   /** `.films__note` の注記。 */
   note: string;
+  trailerModal: FilmsTrailerModal;
 };
 
 /* ------------------------------------------------------------------ *
@@ -510,13 +536,6 @@ export type IndexNewsItem = {
   delay?: string;
 };
 
-/** ニュースレター欄のソーシャルリンク1件。 */
-export type SocialLink = {
-  label: string;
-  ariaLabel: string;
-  href: string;
-};
-
 export type IndexDocument = {
   meta: PageMeta;
   hero: IndexHero;
@@ -583,17 +602,6 @@ export type IndexDocument = {
   cta: {
     t: string;
     link: TextLink;
-  };
-  newsletter: {
-    /** `Stay in<br>the Loop`。 */
-    title: Inline;
-    note: string;
-    form: {
-      placeholder: string;
-      ariaLabel: string;
-      button: string;
-    };
-    social: SocialLink[];
   };
 };
 

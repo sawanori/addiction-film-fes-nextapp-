@@ -35,6 +35,19 @@ export default function Films({
                 alt={film.alt}
                 {...(film.lazy ? { loading: "lazy" } : {})}
               />
+              {film.trailer?.id ? (
+                <button
+                  className="film__play"
+                  type="button"
+                  data-trailer={film.trailer.id}
+                  {...(film.trailer.start
+                    ? { "data-trailer-start": film.trailer.start }
+                    : {})}
+                  aria-label={film.trailer.aria}
+                >
+                  <span className="film__play-label">{film.trailer.label}</span>
+                </button>
+              ) : null}
             </span>
             <span className="film__k">{film.k}</span>
             <span className="film__t">{film.t}</span>

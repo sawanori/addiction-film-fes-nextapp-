@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Hero from "@/components/Hero";
 import Films from "@/components/Films";
-import NewsletterForm from "@/components/NewsletterForm";
 import SmartLink from "@/components/SmartLink";
 import { styleVars } from "@/lib/style";
 import { getDocument } from "@/lib/content/load";
@@ -31,7 +30,6 @@ export default async function Home() {
     news,
     manifesto,
     cta,
-    newsletter,
   } = index;
 
   return (
@@ -115,7 +113,8 @@ export default async function Home() {
             </SmartLink>
           </div>
 
-          <div className="sections-grid">
+          {/* カードが2枚のため 1081px 以上では sections-grid--2 で2カラムに詰める（news の同グリッドは3枚のまま） */}
+          <div className="sections-grid sections-grid--2">
             {approach.cards.map((card) => (
               <SmartLink
                 key={card.no}
@@ -314,7 +313,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ============ CTA + NEWSLETTER ============ */}
+      {/* ============ CTA ============ */}
       <section
         className="section"
         style={{ paddingTop: "clamp(40px,5vw,72px)" }}
@@ -325,33 +324,6 @@ export default async function Home() {
             <SmartLink className="arrow" href={cta.link.href}>
               {cta.link.label}
             </SmartLink>
-          </div>
-        </div>
-      </section>
-
-      <section className="newsletter">
-        <div className="wrap">
-          <div className="newsletter__grid">
-            <div>
-              <h2 className="display display--sm">
-                {renderInline(newsletter.title)}
-              </h2>
-              <p className="small muted" style={{ marginTop: "12px" }}>
-                {newsletter.note}
-              </p>
-            </div>
-            <NewsletterForm
-              placeholder={newsletter.form.placeholder}
-              ariaLabel={newsletter.form.ariaLabel}
-              button={newsletter.form.button}
-            />
-            <div className="social">
-              {newsletter.social.map((item) => (
-                <a key={item.label} href={item.href} aria-label={item.ariaLabel}>
-                  {item.label}
-                </a>
-              ))}
-            </div>
           </div>
         </div>
       </section>

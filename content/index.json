@@ -313,42 +313,5 @@
       "label": "パートナー募集について",
       "href": "/about#partner"
     }
-  },
-  "newsletter": {
-    "title": [
-      "Stay in",
-      {
-        "t": "br"
-      },
-      "the Loop"
-    ],
-    "note": "開催日程・会場・上映作品・チケット発売のお知らせをメールでお送りします。",
-    "form": {
-      "placeholder": "E-mail",
-      "ariaLabel": "メールアドレス",
-      "button": "Subscribe →"
-    },
-    "social": [
-      {
-        "label": "IG",
-        "ariaLabel": "Instagram",
-        "href": "#"
-      },
-      {
-        "label": "X",
-        "ariaLabel": "X",
-        "href": "#"
-      },
-      {
-        "label": "YT",
-        "ariaLabel": "YouTube",
-        "href": "#"
-      },
-      {
-        "label": "NOTE",
-        "ariaLabel": "note",
-        "href": "#"
-      }
-    ]
   }
 }
