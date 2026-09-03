@@ -1,0 +1,357 @@
+{
+  "feature": "git-backed-cms",
+  "version": 2,
+  "notes": [
+    "v2（2026-09-03）: Fable 5.1 のレビューで v1 を改訂。baseline 再生成タスクを削除、保存層と API を1タスクに統合、JSON 整形の正規化を task_001 に追加、本番反映タスクを制作側の検証用 Vercel プロジェクトに定義。",
+    "全タスク共通の完了条件: そのコミット単体で npx tsc --noEmit / npm run build / npm run verify:text（baseline 不変・完全一致）が通る。npm run verify:text -- --update は本計画では実行しない。",
+    "全タスク共通の禁止事項: worktree を使わない。verification/ 配下を変更しない。git reset --hard / git clean / rm -rf を使わない。.dev.vars* の内容を出力しない。"
+  ],
+  "tasks": [
+    {
+      "task_id": "task_001",
+      "title": "本番DBの掲載内容を content/*.json へ回収し、11ファイルの整形を正規化する",
+      "goal": "移行の出発点として content/*.json が本番の掲載内容と一致し、かつ JSON.stringify(data, null, 2) + '\\n' の形で書かれている状態を作る。ここを飛ばすと、管理画面から入れた変更が黙って巻き戻り、初回保存で整形差分が数百行出る。",
+      "scope": ["本番DB・dev DB の書き出し", "content/*.json との deep-equal + コードポイント比較", "DB 側が新しければ取り込み", "11ファイルの直列化を正規化", "dev DB を本番と同じ内容にそろえる"],
+      "non_scope": ["コードの変更", "baseline の更新"],
+      "files_to_read": ["scripts/db-seed.mjs", "docs/deploy-vercel.md", "docs/plans/git-backed-cms/implementation-plan.md"],
+      "files_to_create": [],
+      "files_to_modify": ["content/about.json", "content/films.json", "content/index.json", "content/legal.json", "content/news.json", "content/privacy.json", "content/programme.json", "content/site.json", "content/terms.json", "content/tickets.json", "content/timetable.json"],
+      "dependencies": [],
+      "implementation_steps": [
+        "本番DB（.dev.vars.prod-reference）と dev DB（.dev.vars）の content_documents を SELECT し、backups/turso-export-<日付>/{prod,dev}/<key>.json に書き出す（backups/ は .gitignore 済み）",
+        "3者（本番DB・dev DB・content/<key>.json）を JSON.parse した値の deep-equal と、全文字列のコードポイント配列で比較する（scripts/db-seed.mjs の collectStrings / codePoints と同じ方式を使い捨てスクリプトで再現する）",
+        "食い違いがあれば content_revisions.created_at を見て管理画面編集の有無を判定し、DB 側が新しければ content/<key>.json をその値で置き換える。判断の根拠を計画書 §10.2 の脚注として1行追記する",
+        "11ファイルすべてを JSON.stringify(JSON.parse(raw), null, 2) + '\\n' で書き直す（値が一致していても行う。整形の正規化）",
+        "書き直し前後で deep-equal とコードポイント配列一致を確認する",
+        "dev DB が本番と一致していなければ、node scripts/db-seed.mjs --force で dev DB を content/*.json の内容にそろえる（verify:text は .dev.vars の dev DB を読むため）",
+        "npm run verify:coverage → npm run build → npm run verify:text を通してからコミットする（コミットメッセージに『値は不変、整形のみ』と回収の有無を書く）"
+      ],
+      "done_definition": [
+        "backups/turso-export-<日付>/ に本番DB・dev DB の書き出しがある",
+        "11キーすべてについて content/<key>.json と本番DBの内容が deep-equal かつコードポイント一致であることの記録がある",
+        "11ファイルすべてが JSON.stringify(JSON.parse(raw), null, 2) + '\\n' === raw を満たす",
+        "npm run verify:coverage が11ドキュメントすべて [ok]",
+        "npx tsc --noEmit と npm run build が通る",
+        "npm run verify:text が baseline と完全一致（差分0件）"
+      ],
+      "verify_commands": ["npm run verify:coverage", "npx tsc --noEmit", "npm run build", "npm run verify:text"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_002",
+      "title": "管理画面の URL を /admin から /addiction-admin へ変える（挙動は不変）",
+      "goal": "URL の変更だけを単独のコミットにして、後続の保存層の書き換えと混ざらないようにする。このコミットの前後で管理画面の機能は完全に同じであること。",
+      "scope": ["app/(admin)/admin → app/(admin)/addiction-admin の移動", "app/api/admin → app/api/addiction-admin の移動", "URL として使われている参照の修正", "コメントの修正"],
+      "non_scope": ["Turso の撤去", "API 契約の変更", "@/lib/admin/ の import 指定子（変えない）", "Cookie 名 aff_admin と CSRF ヘッダ x-aff-admin（変えない）"],
+      "files_to_read": ["docs/plans/git-backed-cms/implementation-plan.md"],
+      "files_to_create": [],
+      "files_to_modify": ["app/(admin)/admin/page.tsx", "app/(admin)/admin/LogoutButton.tsx", "app/(admin)/admin/login/page.tsx", "app/(admin)/admin/login/LoginForm.tsx", "app/(admin)/admin/docs/[key]/page.tsx", "app/(admin)/admin/docs/[key]/DocumentEditor.tsx", "app/api/admin/login/route.ts", "app/api/admin/logout/route.ts", "app/api/admin/documents/route.ts", "app/api/admin/documents/[key]/route.ts", "app/api/admin/documents/[key]/revert/route.ts", "lib/admin/session.ts", "app/layout.tsx", "app/(public)/layout.tsx"],
+      "dependencies": ["task_001"],
+      "implementation_steps": [
+        "git mv でディレクトリ2つを移動する（履歴を残す）",
+        "素朴な sed を使わない。@/lib/admin/ で始まる import 指定子18箇所と docs/plans/trailer-admin/ を壊すため。URL として使われている箇所（計画書 §3.10 / §11.2）を1つずつ直す",
+        "login/page.tsx の PageProps<\"/admin/login\"> を PageProps<\"/addiction-admin/login\"> に、next パラメータ検証の startsWith(\"/admin\") を startsWith(\"/addiction-admin\") に、fallback を \"/addiction-admin\" に直す。!startsWith(\"//\") の開放リダイレクト対策は維持する",
+        "lib/admin/session.ts の redirect 先を /addiction-admin/login に直す",
+        "app/layout.tsx と app/(public)/layout.tsx のコメント中の /admin を直す",
+        "npx tsc --noEmit を通す。PageProps の型引数が旧パスのままだとここで落ちる",
+        "npm run build のあと npm start で起動し、curl で /addiction-admin が 307 で /addiction-admin/login?next=%2Faddiction-admin へ飛ぶこと、/admin と /api/admin/documents が 404 になることを確認する",
+        "ログイン → 一覧 → 編集 → 保存 → 復元 → ログアウトの一巡を実際に操作し、機能が変わっていないことを確認する（この時点ではまだ Turso が保存先）。試し書きは node scripts/db-seed.mjs --force で戻す"
+      ],
+      "done_definition": [
+        "npx tsc --noEmit と npm run build が通る",
+        "grep -rn '\"/admin\\|/api/admin\\|/admin/' app/ lib/ が0件（@/lib/admin/ の import は除く）",
+        "GET /addiction-admin が未認証で 307、Location に /addiction-admin/login を含む",
+        "GET /admin が 404、GET /api/admin/documents が 404",
+        "GET /api/addiction-admin/documents が未認証で 401",
+        "ログインから保存・復元までの一巡が現行どおり動く",
+        "npm run verify:text が baseline と完全一致"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run lint", "npm run build", "npm run verify:text"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_003",
+      "title": "ContentStore の契約、ローカルFS実装、git blob sha の計算、直列化、回帰テストを作る",
+      "goal": "保存先を差し替えられる境界を1つ作り、GitHub を使わずに（next dev で）動く実装を先に完成させる。sha の計算方式と直列化が GitHub / git と一致することをここで実測して確定する。",
+      "scope": ["lib/content/store.ts（型・getContentStore・gitBlobSha・serializeDocument）", "lib/content/store-fs.ts", "scripts/verify-blob-sha.mjs", "package.json の verify:blob-sha"],
+      "non_scope": ["GitHub 実装（task_004）", "既存コードからの利用（task_005）"],
+      "files_to_read": ["lib/admin/documents.ts", "lib/admin/auth.ts", "docs/plans/git-backed-cms/implementation-plan.md"],
+      "files_to_create": ["lib/content/store.ts", "lib/content/store-fs.ts", "scripts/verify-blob-sha.mjs"],
+      "files_to_modify": ["package.json"],
+      "dependencies": ["task_002"],
+      "implementation_steps": [
+        "gitBlobSha(text) は Web Crypto の crypto.subtle.digest('SHA-1', bytes) で計算する。入力は 'blob ' + UTF-8 バイト長 + '\\0' + 本文（バイト長は文字数ではなく Buffer.byteLength / TextEncoder のバイト数）",
+        "serializeDocument(data) は JSON.stringify(data, null, 2) + '\\n' に固定する（計画書 §7.13）",
+        "getContentStore() の選択規則は計画書 §7.1 の表のとおり。CONTENT_STORE=fs → FS、CONTENT_STORE=github または（NODE_ENV !== 'development' かつ GITHUB_CONTENT_TOKEN と GITHUB_CONTENT_REPO がある）→ GitHub（task_004 まではプレースホルダとして null を返してよいが、選択規則は完成させる）、NODE_ENV === 'development' → FS、それ以外 → null",
+        "LocalFsStore.write は baseSha と現在のファイルの gitBlobSha を比較し、不一致なら {ok:false, reason:'conflict', sha:現在値}。直列化した内容が現在のファイルとバイト一致なら {ok:true, sha:baseSha, commit:null, createdAt, unchanged:true} を返してファイルを書かない。history() は空配列、readAt() は null",
+        "verify-blob-sha.mjs は node で直接動かし（tsx 不要）、content/*.json 11件について serializeDocument(JSON.parse(raw)) の gitBlobSha が child_process.execFileSync('git', ['hash-object', path]) の出力と一致することを確認する。TypeScript の関数を import できないため、同じ計算を .mjs 内に再実装し、コメントで store.ts と同一であることを明記する",
+        "package.json に \"verify:blob-sha\": \"node scripts/verify-blob-sha.mjs\" を足す"
+      ],
+      "done_definition": [
+        "node scripts/verify-blob-sha.mjs が11件すべて一致で exit 0",
+        "npx tsc --noEmit が通る",
+        "npm run lint の指摘が増えていない",
+        "npm run build と npm run verify:text が通る"
+      ],
+      "verify_commands": ["node scripts/verify-blob-sha.mjs", "npx tsc --noEmit", "npm run lint", "npm run build", "npm run verify:text"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_004",
+      "title": "GitHub Contents / Commits API の ContentStore 実装を作る（409 の挙動を検証用ブランチで実測してから）",
+      "goal": "GitHub リポジトリを保存先として使えるようにする。sha 不一致（409）、並行 PUT、変更なし、Preview 拒否、タイムアウトの挙動を実装する。",
+      "scope": ["lib/content/store-github.ts", "store.ts の選択規則から GitHub 実装を返す"],
+      "non_scope": ["既存コードからの利用（task_005）", "main ブランチへの書き込み（実測は検証用ブランチ cms-staging に限る）"],
+      "files_to_read": ["lib/content/store.ts", "lib/content/store-fs.ts", "docs/plans/git-backed-cms/implementation-plan.md"],
+      "files_to_create": ["lib/content/store-github.ts"],
+      "files_to_modify": ["lib/content/store.ts"],
+      "dependencies": ["task_003"],
+      "implementation_steps": [
+        "実測を先にやる: main から cms-staging ブランチを切って push し、gh api でそのブランチに対して (a) 正しい sha で PUT、(b) 古い sha で PUT、(c) 存在しないパスへ PUT を試し、返るステータスコードと body を記録する。実測結果が計画書 §7.2 の想定（409 / 422）と違えば、コードではなく計画書を先に直す",
+        "fetch のヘッダは Authorization: Bearer <token>, Accept: application/vnd.github+json, X-GitHub-Api-Version: 2022-11-28。すべての fetch に cache:'no-store' と signal: AbortSignal.timeout(10000) を付ける",
+        "GITHUB_CONTENT_REPO は /^[A-Za-z0-9_.-]+\\/[A-Za-z0-9_.-]+$/ で検証してから URL に埋める。GITHUB_CONTENT_BRANCH の既定は main",
+        "read(): GET contents/content/<key>.json?ref=<branch>。content の base64 は改行を除去してから Buffer.from(s,'base64') で復号する",
+        "write(): 直列化 → 現在値とバイト一致なら unchanged で返す → PUT（message は計画書 §7.7 の形式、note は制御文字除去 + 500文字で切る、author/committer は付けない、branch を指定）。409 なら read() し直し、blob sha が baseSha と同じなら1回だけ再試行、違えば conflict + 最新 sha。応答の content.sha と commit.sha と commit.committer.date を返す",
+        "process.env.VERCEL_ENV === 'preview' のとき write() は {ok:false, reason:'forbidden'} を返す",
+        "history(): GET commits?path=content/<key>.json&sha=<branch>&per_page=<limit>。note はメッセージの2行目以降（空なら null）",
+        "readAt(): GET contents/content/<key>.json?ref=<commit>。404 は null",
+        "list(): 11キーについて commits?path=…&per_page=1 を Promise.all で並列に呼び、updatedAt を組み立てる（取れなかったキーは null）",
+        "ローカルから実測するときは .env.local に GITHUB_CONTENT_TOKEN（gh が使っている GITHUB_TOKEN の値をコピー）/ GITHUB_CONTENT_REPO / GITHUB_CONTENT_BRANCH=cms-staging / CONTENT_STORE=github を置き、終わったら消す"
+      ],
+      "done_definition": [
+        "検証用ブランチに対する (a)(b)(c) の実測結果（ステータスコードと body）が計画書 §7.2 の脚注に記録されている",
+        "read() で取れた sha を使えば必ず write() が通ることを実測した",
+        "古い sha での write() が {ok:false, reason:'conflict', sha:最新値} を返すことを実測した",
+        "同じ内容での write() が unchanged:true でコミットを増やさないことを実測した",
+        "VERCEL_ENV=preview を立てた状態で write() が forbidden を返すことを確認した",
+        "history() が cms-staging のコミットを返し、note が2行目以降になっていることを確認した",
+        "npx tsc --noEmit / npm run lint / npm run build / npm run verify:text が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run lint", "npm run build", "npm run verify:text"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_005",
+      "title": "lib/admin/documents.ts と管理API 5本を ContentStore 経由の新契約（sha / commit）にする",
+      "goal": "管理APIから見た読み書きの窓口を SQL から ContentStore に差し替え、リクエスト/応答から revision(number) を無くして sha(string) と commit にする。HTTP ステータスコードの意味は変えない。1コミットで tsc が通る状態にする。",
+      "scope": ["lib/admin/documents.ts の全面書き換え", "documents / documents/[key] / revert / login / logout の5ルート"],
+      "non_scope": ["lib/db.ts の削除（task_010）", "rate-limit.ts / session.ts の書き換え（task_007 / 008）", "UI（task_006）"],
+      "files_to_read": ["lib/content/store.ts", "lib/admin/ops.ts", "docs/plans/git-backed-cms/implementation-plan.md"],
+      "files_to_create": [],
+      "files_to_modify": ["lib/admin/documents.ts", "app/api/addiction-admin/documents/route.ts", "app/api/addiction-admin/documents/[key]/route.ts", "app/api/addiction-admin/documents/[key]/revert/route.ts", "app/api/addiction-admin/login/route.ts"],
+      "dependencies": ["task_004"],
+      "implementation_steps": [
+        "documents.ts: readDocument / writeDocument / listDocuments / listHistory / readAt の5つを getContentStore() 経由にする。store が null なら 'misconfigured'、store_error なら 'store_error' を返す。@libsql / getDbClient / SQL 文字列を残さない",
+        "documents/route.ts: SQL 直書きをやめて listDocuments() を呼ぶ。応答は {documents:[{key,label,updatedAt}]}",
+        "documents/[key]/route.ts: GET は {key,data,sha,updatedAt,manifest,history}。PUT/PATCH は baseSha（40桁16進でなければ 400）を受け、処理順 normalizeDocument → formatDocument → validateDocument → writeDocument を維持。forbidden → 403、conflict → 409 {sha}、store_error → 503、misconfigured → 500。応答は {data,sha,commit,createdAt,unchanged}",
+        "revert/route.ts: {commit} を /^[0-9a-f]{7,40}$/ で検証（不一致は 400）→ readAt → 現在の sha を読み直して writeDocument（メッセージ 'content(<key>): <7桁> から復元'）。検証・変換は通さない（trailer-admin 計画 §9.3）",
+        "login/route.ts: session_version の DB 読み出し（現行 113-127 行）を消し、generateSessionCookie(1, 43200, secret) にする。この時点で login から getDbClient の import が消える（rate-limit.ts 側は task_007 まで DB を使い続けるので lib/db.ts はまだ残す）",
+        "curl で GET / PUT（正しい sha・古い sha・manifest に無いキー）/ revert を叩き、ステータスコードを記録する"
+      ],
+      "done_definition": [
+        "lib/admin/documents.ts と5ルートに @libsql / getDbClient / SQL が1つも無い",
+        "curl で GET /api/addiction-admin/documents/films が {key,data,sha,updatedAt,manifest,history} を返す",
+        "PUT に古い sha を渡すと 409 と {sha} が返る",
+        "PUT に manifest に無いキーを含む data を渡すと 422 と {errors} が返る",
+        "revert に不正な commit を渡すと 400",
+        "npx tsc --noEmit / npm run lint / npm run build / npm run verify:text が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run lint", "npm run build", "npm run verify:text"],
+      "risk_level": "high"
+    },
+    {
+      "task_id": "task_006",
+      "title": "管理画面UIを新しい契約に合わせ、版の表示と反映時間の文言を直す",
+      "goal": "利用者が見る画面から整数の版番号を無くし、最終保存（日時 + コミット7桁）と履歴表（コミット7桁）に統一する。「すぐ反映されます」という事実に反する説明を直す。",
+      "scope": ["addiction-admin/page.tsx", "docs/[key]/page.tsx", "DocumentEditor.tsx", "文言（計画書 §8）"],
+      "non_scope": ["admin.css", "FieldEditor.tsx / InlineEditor.tsx（無変更）"],
+      "files_to_read": ["app/(admin)/addiction-admin/docs/[key]/DocumentEditor.tsx", "docs/plans/git-backed-cms/implementation-plan.md"],
+      "files_to_create": [],
+      "files_to_modify": ["app/(admin)/addiction-admin/page.tsx", "app/(admin)/addiction-admin/docs/[key]/page.tsx", "app/(admin)/addiction-admin/docs/[key]/DocumentEditor.tsx"],
+      "dependencies": ["task_005"],
+      "implementation_steps": [
+        "page.tsx（一覧）: 「版 N」列を消し、「最終更新」はドキュメントごとの updatedAt（null なら '—'）。503 の文言を「保存先（GitHub）に接続できませんでした。時間をおいて再読み込みしてください。」に。§8.1 の文言",
+        "docs/[key]/page.tsx: initialSha / initialHistory を渡す。503 の文言を同じく直す",
+        "DocumentEditor.tsx: 見出しを「最終保存 <日時>（<7桁>）」（history[0] から。空なら「最終保存 —（履歴なし）」）。baseSha を送る。応答の sha を保持し、commit が非 null かつ unchanged でなければ履歴の先頭に楽観的に行を足す。履歴表は commit 7桁（title に40桁）・メモ・日時・「この版に戻す」。confirm() の文言も7桁に。403 → 「プレビュー環境では保存できません。本番の管理画面から操作してください。」、404（復元）→ 「この環境では復元できません」。§8.1 の文言2件。表の下に「20件より前の履歴は GitHub で見られます」とリンク（GITHUB_CONTENT_REPO から組んだ URL をサーバ側で渡す。未設定なら出さない）",
+        "「1〜2分」の数値は暫定。task_012 で実測後に食い違えば直す",
+        "next dev（LocalFsStore）で保存すると content/<key>.json が書き換わり、履歴表が空で表示されることを確認する。試し書きは git checkout -- content/ で戻す"
+      ],
+      "done_definition": [
+        "管理画面に整数の「版」が1つも出ない",
+        "grep -rn 'すぐ反映' app/ が0件",
+        "next dev で保存すると content/<key>.json が書き換わり、git diff が変更した行だけになる",
+        "npx tsc --noEmit / npm run lint / npm run build / npm run verify:text が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run lint", "npm run build", "npm run verify:text"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_007",
+      "title": "ログイン試行のレート制限をプロセス内メモリ実装に置き換える（fail-open）",
+      "goal": "DB を使わずに、同一インスタンスへの素朴な連続試行を止める。DB が無いことで全利用者が締め出される fail-closed 状態を作らない。LoginForm.tsx は無変更で動く。",
+      "scope": ["lib/admin/rate-limit.ts"],
+      "non_scope": ["WAF ルール（docs で手順化。task_011）", "LoginForm.tsx"],
+      "files_to_read": ["lib/admin/rate-limit.ts", "app/api/addiction-admin/login/route.ts"],
+      "files_to_create": [],
+      "files_to_modify": ["lib/admin/rate-limit.ts"],
+      "dependencies": ["task_005"],
+      "implementation_steps": [
+        "Map<ip, {failures:number, lockedUntil:number|null}> をモジュールスコープに置く。上限1000件で、超えたら最も古いキーから捨てる",
+        "checkRateLimit / recordLoginFailure / clearLoginAttempts の3関数の名前と戻り値の型は変えない（login/route.ts を触らない）。recordLoginFailure は読んで書くまでの間に await を挟まない",
+        "getClientIp は x-forwarded-for の先頭 → cf-connecting-ip → 'unknown' の順にする（Vercel が x-forwarded-for を設定する）",
+        "コメントに『共有ストアが無いため複数インスタンスにまたがる総当たりは止められない。主たる守りは Vercel WAF のレート制限ルール（docs/deploy-vercel.md）とパスワードの強さ』と書く"
+      ],
+      "done_definition": [
+        "lib/admin/rate-limit.ts に @libsql / getDbClient / SQL が1つも無い",
+        "同じプロセスに5回連続で誤ったパスワードを送ると6回目が 429 {error:'locked', retryAfter}",
+        "正しいパスワードでログインするとカウンタが消える",
+        "npx tsc --noEmit / npm run lint / npm run build が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run lint", "npm run build", "npm run verify:text"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_008",
+      "title": "セッションの session_version 照合を撤去する",
+      "goal": "認証チェックから I/O を無くし、全端末ログアウトの手段を ADMIN_SESSION_SECRET の差し替え1本に統一する。",
+      "scope": ["lib/admin/session.ts"],
+      "non_scope": ["lib/admin/auth.ts（無変更。ver フィールドは残す）"],
+      "files_to_read": ["lib/admin/session.ts", "lib/admin/auth.ts"],
+      "files_to_create": [],
+      "files_to_modify": ["lib/admin/session.ts"],
+      "dependencies": ["task_007"],
+      "implementation_steps": [
+        "getDbClient の import と session_version 照合ブロックを削除する。cache() で包んだままにする",
+        "DAL をレイアウトでなくページ・ハンドラの先頭で呼ぶ理由を書いた既存の doc コメント（Next 16 authentication ガイドへの参照）は残す",
+        "この時点で lib/db.ts の利用者が lib/content/load.ts だけになることを grep で確認する"
+      ],
+      "done_definition": [
+        "lib/admin/session.ts に @libsql / getDbClient / SQL が1つも無い",
+        "ログイン → 管理画面の閲覧 → API 呼び出しが通る",
+        "ADMIN_SESSION_SECRET を変えて再起動すると、既存の Cookie でのアクセスが /addiction-admin/login へリダイレクトされ、API が 401",
+        "npx tsc --noEmit / npm run build が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run lint", "npm run build", "npm run verify:text"],
+      "risk_level": "low"
+    },
+    {
+      "task_id": "task_009",
+      "title": "公開ページの読み出しを同梱JSON専用にし、8ページを静的生成にする（baseline は変えない）",
+      "goal": "公開ページから DB 依存を無くし、ビルド時に生成される静的ページにする。可視テキスト・DOM・class 集合は1バイトも変えない（計画書 §3.5 で完全一致を実測済み）。",
+      "scope": ["lib/content/load.ts", "app/(public)/*.tsx 8ファイルの force-dynamic 削除", "open-next.config.ts のコメント"],
+      "non_scope": ["verification/ の変更（禁止）", "components/**"],
+      "files_to_read": ["lib/content/load.ts", "docs/plans/git-backed-cms/implementation-plan.md"],
+      "files_to_create": [],
+      "files_to_modify": ["lib/content/load.ts", "app/(public)/page.tsx", "app/(public)/about/page.tsx", "app/(public)/programme/page.tsx", "app/(public)/tickets/page.tsx", "app/(public)/news/page.tsx", "app/(public)/privacy/page.tsx", "app/(public)/terms/page.tsx", "app/(public)/legal/page.tsx", "open-next.config.ts"],
+      "dependencies": ["task_008"],
+      "implementation_steps": [
+        "load.ts: getDocument を「同梱 JSON を返す」だけにする。async と cache() のシグネチャは変えない（呼び出し側11箇所を触らない）。getDbClient の import を消す",
+        "8ページから export const dynamic = \"force-dynamic\" の1行を消す",
+        "open-next.config.ts の冒頭コメント（force-dynamic を理由にしている）を実態に合わせる。設定は変えない",
+        "npm run build の出力で公開8ルートが ○ (Static) になっていることを確認する",
+        "環境変数なしで npx next start を起動し、BASE_URL を渡して npm run verify:text を走らせる。差分は0件でなければならない（1件でも出たら実装を止めて原因を調べる。baseline は更新しない）"
+      ],
+      "done_definition": [
+        "lib/content/load.ts に @libsql / getDbClient / SQL が1つも無い",
+        "app/(public) に force-dynamic が1件も無い",
+        "npm run build の出力で公開8ルートが ○ (Static)",
+        "npm run verify:text が baseline と完全一致（差分0件）",
+        "git status で verification/ に変更が無い",
+        "npx tsc --noEmit / npm run lint が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run lint", "npm run build", "npm run verify:text"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_010",
+      "title": "Turso（libsql）を撤去し、verify-text.sh の DB 依存を外す",
+      "goal": "libsql への参照をソースコードから完全に無くし、依存・スクリプト・設定を削除する。検証スクリプトが環境変数なしで動く状態にする。",
+      "scope": ["lib/db.ts / scripts/db-*.mjs / scripts/load-dev-vars.mjs の削除", "package.json / package-lock.json", "next.config.ts", "scripts/verify-text.sh"],
+      "non_scope": ["verification/ の変更（禁止）", "Cloudflare 設定ファイルの削除（申し送り）"],
+      "files_to_read": ["next.config.ts", "scripts/verify-text.sh", "package.json"],
+      "files_to_create": [],
+      "files_to_modify": ["package.json", "package-lock.json", "next.config.ts", "scripts/verify-text.sh"],
+      "dependencies": ["task_009"],
+      "implementation_steps": [
+        "先に grep -rn 'getDbClient\\|@libsql\\|TURSO_' lib/ app/ components/ scripts/ を走らせ、lib/db.ts と scripts/db-*.mjs 以外が0件であることを確かめる。1件でもあれば lib/db.ts を消してはいけない",
+        "git rm で lib/db.ts / scripts/db-migrate.mjs / scripts/db-seed.mjs / scripts/load-dev-vars.mjs を削除する",
+        "package.json から @libsql/client と db:migrate / db:seed を消し、npm install で package-lock.json を再生成する（手で編集しない）",
+        "next.config.ts の outputFileTracingIncludes ブロック（コメント込み）を削除する",
+        "scripts/verify-text.sh の .dev.vars / .env.local を読んで起動する分岐（43-58行）を削除し、npx next start 一本にする。コメントも実態に合わせる",
+        "npm ci をまっさらな node_modules から通す",
+        "opennextjs-cloudflare build が通ることを確認する（libsql が消えているので @libsql/isomorphic-ws の解決失敗は起きないはずだが、実測する）"
+      ],
+      "done_definition": [
+        "grep -rn 'libsql\\|TURSO_\\|getDbClient' lib/ app/ components/ scripts/ が0件",
+        "package.json と package-lock.json に @libsql が無い",
+        "scripts/verify-text.sh に .dev.vars / .env.local / --env-file の記述が無い",
+        "npm ci が通る",
+        "npx tsc --noEmit / npm run lint / npm run build / npm run verify:coverage / node scripts/verify-blob-sha.mjs / node scripts/verify-youtube-id.mjs / npm run verify:text がすべて通る",
+        "opennextjs-cloudflare build が通る"
+      ],
+      "verify_commands": ["npx tsc --noEmit", "npm run lint", "npm run build", "npm run verify:coverage", "node scripts/verify-blob-sha.mjs", "node scripts/verify-youtube-id.mjs", "npm run verify:text"],
+      "risk_level": "medium"
+    },
+    {
+      "task_id": "task_011",
+      "title": "ドキュメントを実態に合わせる",
+      "goal": "先方が読んで自力で立ち上げられる状態にする。特に docs/deploy-vercel.md は引き継ぎの正典なので、Turso 前提の記述を残さず、PAT の発行者条件と WAF ルールの手順を入れる。",
+      "scope": [".env.example", "docs/deploy-vercel.md", "README.md", "CLAUDE.md"],
+      "non_scope": ["docs/PROGRESS.md / docs/implementation-plan.md / docs/plans/trailer-admin/**（履歴として残す）"],
+      "files_to_read": ["docs/deploy-vercel.md", "README.md", "CLAUDE.md", ".env.example", "docs/plans/git-backed-cms/implementation-plan.md"],
+      "files_to_create": [],
+      "files_to_modify": [".env.example", "docs/deploy-vercel.md", "README.md", "CLAUDE.md"],
+      "dependencies": ["task_010"],
+      "implementation_steps": [
+        ".env.example: TURSO 2つを削除、GITHUB_CONTENT_TOKEN / GITHUB_CONTENT_REPO / GITHUB_CONTENT_BRANCH / CONTENT_STORE を追加（用途・Production スコープのみ・検証用ブランチの使い方をコメントで）。/admin → /addiction-admin",
+        "docs/deploy-vercel.md: §0 渡すもの（リポジトリ + 環境変数4〜5つ）、§2 環境変数表、PAT の作り方（fine-grained / Only select repositories / Contents: Read and write / 有効期限）と**発行者は Vercel プロジェクトの所有者本人**という条件とその理由、Production スコープのみに入れる理由、WAF レート制限ルールの画面手順（計画書 §7.4 の設定値）、§3 の反映の説明（保存 → コミット → 自動デプロイ、1〜2分は task_012 で確定）、§5 Turso 節の削除、上限の数値（1日100デプロイ）、全端末ログアウト＝ADMIN_SESSION_SECRET の差し替え、§7 Cloudflare 版は deploy:cf 時点のスナップショット、パスワードは20文字以上",
+        "README.md: /admin 2箇所、保存先の説明、「デプロイは不要」→「保存すると自動でデプロイされる」",
+        "CLAUDE.md: コマンド一覧（db:* を消し verify:blob-sha を足す）、デプロイ先の節（環境変数の名前と数、Turso の記述）、管理画面の節（試し書きを戻す手順を git checkout -- content/ に、verify:text が DB を読むという記述を削除）、/admin → /addiction-admin、Cloudflare の非対称",
+        "実測していない数値（反映までの時間）は task_012 の結果を待って埋める。この時点では『暫定』と書く"
+      ],
+      "done_definition": [
+        "grep -n 'TURSO\\|Turso\\|libsql' .env.example README.md CLAUDE.md docs/deploy-vercel.md が0件",
+        "grep -n '/admin' .env.example README.md CLAUDE.md docs/deploy-vercel.md が /addiction-admin 以外で0件",
+        "docs/deploy-vercel.md に PAT の発行者条件・WAF ルールの手順・1日100デプロイの上限が書かれている",
+        "npm run build / npm run verify:text / npm run verify:coverage が通る"
+      ],
+      "verify_commands": ["npm run build", "npm run verify:text", "npm run verify:coverage"],
+      "risk_level": "low"
+    },
+    {
+      "task_id": "task_012",
+      "title": "検証用 Vercel プロジェクトで全経路を実測し、文言と引き継ぎ手順を確定する",
+      "goal": "制作側の Vercel（Hobby）に検証用プロジェクトを作り、保存 → コミット → 自動デプロイ → 反映の全経路と、未確認の数値（反映までの時間）を実測する。先方環境の操作はしない。",
+      "scope": ["cms-staging ブランチ", "Vercel プロジェクト addiction-film-fes-staging（Production Branch = cms-staging）", "実測値の反映", "docs/deploy-vercel.md の確定"],
+      "non_scope": ["先方の Vercel / GitHub の操作", "main への直接コミット（管理画面からの保存は cms-staging に限る）"],
+      "files_to_read": ["docs/deploy-vercel.md", "docs/plans/git-backed-cms/implementation-plan.md"],
+      "files_to_create": [],
+      "files_to_modify": ["docs/deploy-vercel.md", "app/(admin)/addiction-admin/page.tsx", "app/(admin)/addiction-admin/docs/[key]/DocumentEditor.tsx", "docs/plans/git-backed-cms/implementation-plan.md"],
+      "dependencies": ["task_011"],
+      "implementation_steps": [
+        "利用者の了承を得てから: Vercel で本リポジトリを Import し、Settings → Git の Production Branch を cms-staging にする。環境変数は Production のみに GITHUB_CONTENT_TOKEN（sawanori 名義の fine-grained PAT。Contents: Read and write、本リポジトリのみ）/ GITHUB_CONTENT_REPO / GITHUB_CONTENT_BRANCH=cms-staging / ADMIN_PASSWORD_PBKDF2（検証用）/ ADMIN_SESSION_SECRET（検証用）",
+        "main の最新を cms-staging に取り込んで push し、初回デプロイを確認する",
+        "検証用 URL の /addiction-admin でログインし、影響の小さい1箇所を編集して保存する。保存時刻・GitHub のコミット時刻・Vercel の Deployment 開始/Ready 時刻・公開ページで文字列が変わった時刻を記録する（A5）",
+        "gh api repos/<repo>/commits/<sha> で author が sawanori であること、Vercel がそのコミットでデプロイを起動したことを確認する（§7.6 の発行者条件の実証）",
+        "30秒以内に2回保存し、先行ビルドが CANCELED になることを確認する（§7.8）",
+        "何も変えずに保存し、コミットが増えないことを確認する",
+        "同じドキュメントを2タブで開いて 409 を再現する",
+        "履歴表から1つ前の版に戻し、新しいコミットができて公開に反映されることを確認する",
+        "Preview の検証: Preview にも一時的にトークンを入れ、PR のプレビュー URL から保存して 403 を確認したら、トークンを Preview から消す",
+        "実測した反映時間で §8.1 の文言（page.tsx / DocumentEditor.tsx）と docs/deploy-vercel.md を確定する。計画書 §6 A5 と §8.1 に実測値を追記する",
+        "後始末: 検証で変えた内容を cms-staging 上で元に戻す。プロジェクトを残す場合は docs/deploy-vercel.md にステージングとして記載する"
+      ],
+      "done_definition": [
+        "検証用 URL の /addiction-admin でログイン・編集・保存・復元ができる",
+        "保存が cms-staging に1コミットを作り、Vercel のデプロイが自動で走り、公開ページに反映された",
+        "コミットの author が Vercel 所有者と一致していることを記録した",
+        "反映までの実測時間が記録され、画面の文言と docs/deploy-vercel.md が一致している",
+        "連続保存で古いビルドがキャンセルされること、変更なし保存でコミットが増えないこと、409、復元、Preview の 403 をすべて実測した",
+        "docs/deploy-vercel.md に『未確認』『暫定』が残っていない",
+        "npm run build / npm run verify:text / npm run verify:coverage / node scripts/verify-blob-sha.mjs / node scripts/verify-youtube-id.mjs が通る"
+      ],
+      "verify_commands": ["npm run build", "npm run verify:text", "npm run verify:coverage", "node scripts/verify-blob-sha.mjs", "node scripts/verify-youtube-id.mjs"],
+      "risk_level": "high"
+    }
+  ]
+}

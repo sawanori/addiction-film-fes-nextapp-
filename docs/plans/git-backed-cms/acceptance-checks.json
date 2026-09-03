@@ -1,0 +1,182 @@
+{
+  "feature": "git-backed-cms",
+  "version": 2,
+  "checks": [
+    {
+      "id": "check_001",
+      "target": "移行前のデータ回収と整形の正規化（task_001）",
+      "rule": "本番DBの content_documents 全キーが content/*.json と deep-equal かつ全文字列のコードポイントが一致し、11ファイルが JSON.stringify(data, null, 2) + '\\n' の形で書かれている",
+      "expected_result": "11キーすべてが一致。node scripts/verify-blob-sha.mjs（task_003 以降）が exit 0。npm run verify:text が baseline と完全一致",
+      "manual_or_automated": "automated",
+      "verification_method": "本番DBの書き出しと content/<key>.json を JSON.parse → deep-equal + コードポイント配列比較。11ファイルで JSON.stringify(JSON.parse(raw), null, 2) + '\\n' === raw を確認"
+    },
+    {
+      "id": "check_002",
+      "target": "管理画面のURL（主要フロー）",
+      "rule": "/addiction-admin でログインでき、/admin と /api/admin/* は存在しない",
+      "expected_result": "未認証の GET /addiction-admin が 307 で Location に /addiction-admin/login?next=%2Faddiction-admin を含む。GET /admin が 404。GET /api/addiction-admin/documents が未認証で 401。GET /api/admin/documents が 404",
+      "manual_or_automated": "automated",
+      "verification_method": "npm start で起動し、4つのURLを curl -s -o /dev/null -w '%{http_code} %{redirect_url}' で叩く"
+    },
+    {
+      "id": "check_003",
+      "target": "保存 → コミット（主要フロー）",
+      "rule": "管理画面で本文を1箇所編集して保存すると、対象ブランチに content/<key>.json のコミットが1つできる",
+      "expected_result": "コミットが1つ増え、diff が編集した行だけ。メッセージの1行目が 'content(<key>): 管理画面から更新'、2行目以降が入力したメモ。author/committer がトークン所有者",
+      "manual_or_automated": "automated",
+      "verification_method": "保存前後で gh api repos/<repo>/commits?path=content/<key>.json&sha=<branch>&per_page=1 を叩いて sha とメッセージを比較し、gh api repos/<repo>/commits/<sha> の files[].patch と author を確認する"
+    },
+    {
+      "id": "check_004",
+      "target": "保存 → 自動デプロイ → 反映（主要フロー。計画書 §7.6 の発行者条件）",
+      "rule": "そのコミットで Vercel のデプロイが自動的に始まり、完了後に公開ページの表示が変わる",
+      "expected_result": "コミット sha を持つデプロイが Vercel の Deployments に現れて READY になり、公開ページの当該箇所が編集後の内容になる。保存からの経過時間が記録され、管理画面の文言（§8.1）と docs/deploy-vercel.md が一致している",
+      "manual_or_automated": "manual",
+      "verification_method": "task_012 の検証用プロジェクトで、保存時刻・コミット時刻・デプロイ開始/READY 時刻・公開ページを curl して文字列が変わった時刻を記録する"
+    },
+    {
+      "id": "check_005",
+      "target": "管理画面が読む「現在の内容」（計画書 §7.11）",
+      "rule": "保存直後、再ビルドが完了する前に管理画面を再読み込みしても、保存した内容が表示される",
+      "expected_result": "編集画面に保存後の値が出る。同梱JSONの古い値ではない",
+      "manual_or_automated": "automated",
+      "verification_method": "保存の直後（デプロイ完了前）に GET /api/addiction-admin/documents/<key> を叩き、data が保存した内容と一致することを確認する"
+    },
+    {
+      "id": "check_006",
+      "target": "楽観ロック（blob sha による競合検出。§7.2）",
+      "rule": "2つのタブで同じドキュメントを開き、片方で保存したあともう片方で保存すると 409 になり、先の変更が消えない",
+      "expected_result": "2回目の PUT が 409 と {error:'conflict', sha:<最新値>} を返す。GitHub のファイル内容は1回目の保存のまま。UI に「ほかの場所で先に保存されています」が出る",
+      "manual_or_automated": "automated",
+      "verification_method": "同じ baseSha で PUT を2回投げ、2回目のステータスコードと body、その後の GET の内容を確認する"
+    },
+    {
+      "id": "check_007",
+      "target": "変更なし保存（無駄なビルドを増やさない。§7.2）",
+      "rule": "何も変えずに保存ボタンを押しても、コミットが増えない",
+      "expected_result": "PUT が 200 と {unchanged:true, commit:null} を返す。コミット数が変わらない。Vercel のデプロイが始まらない",
+      "manual_or_automated": "automated",
+      "verification_method": "保存前後で gh api repos/<repo>/commits?path=content/<key>.json&per_page=1 の sha を比較する"
+    },
+    {
+      "id": "check_008",
+      "target": "履歴と復元（§7.7 案①）",
+      "rule": "履歴表にコミットが最大20件出て、任意の版を選ぶと新しいコミットとして書き戻される。編集画面の「最終保存」と履歴表の先頭行が同じコミットを指す",
+      "expected_result": "履歴表の各行が {コミット7桁, メモ, 日時}。復元するとコミットが1つ増え、内容が選んだ版と一致する。元の履歴は消えない。見出しの7桁 = 履歴先頭行の7桁",
+      "manual_or_automated": "automated",
+      "verification_method": "GET /api/addiction-admin/documents/<key> の history を確認し、POST .../revert に古い commit を渡して応答の data と GitHub 上のファイル内容を照合する。見出しと履歴先頭の値を目視で比較する"
+    },
+    {
+      "id": "check_009",
+      "target": "直列化と blob sha（GitHub / git / ローカルの一致。§7.2 / §7.13）",
+      "rule": "serializeDocument → gitBlobSha が git hash-object と同じ値を返し、GitHub Contents API が返す sha とも一致する",
+      "expected_result": "content/*.json 11件すべてで3者が一致する",
+      "manual_or_automated": "automated",
+      "verification_method": "node scripts/verify-blob-sha.mjs（exit 0）。加えて gh api repos/<repo>/contents/content/<key>.json --jq .sha の値と突き合わせる"
+    },
+    {
+      "id": "check_010",
+      "target": "ログイン試行のレート制限（§7.4）",
+      "rule": "同じインスタンスに対して5回連続で誤ったパスワードを送ると、6回目が 429 になる。WAF ルールの手順が文書化されている",
+      "expected_result": "6回目が 429 と {error:'locked', retryAfter:<秒>}。ログイン画面に「しばらく待ってください（残りN分）」が出る。正しいパスワードでログインすればカウンタが消える。docs/deploy-vercel.md に WAF ルール（パス・POST・IP・10分/10回）の手順がある",
+      "manual_or_automated": "automated",
+      "verification_method": "ローカルの本番ビルドに誤パスワードの POST を6回連続で投げ、ステータスコードの列を記録する。インスタンス単位でしか成立しないことを結果に併記する。docs を grep する"
+    },
+    {
+      "id": "check_011",
+      "target": "全端末ログアウト（§7.5）",
+      "rule": "ADMIN_SESSION_SECRET を差し替えて再起動すると、発行済みの Cookie が全部無効になる",
+      "expected_result": "既存の Cookie を付けた GET /addiction-admin が 307 で /addiction-admin/login へ飛ぶ。GET /api/addiction-admin/documents が 401",
+      "manual_or_automated": "automated",
+      "verification_method": "ログインして Cookie を保存 → 環境変数を変えて再起動 → 同じ Cookie で2つのURLを叩く"
+    },
+    {
+      "id": "check_012",
+      "target": "Preview 環境からの書き込み防止（§7.6 の2枚目の防壁）",
+      "rule": "GITHUB_CONTENT_TOKEN が入っていても、VERCEL_ENV=preview では保存できない",
+      "expected_result": "PUT が 403 を返し、GitHub のファイルが変わらない。UI に「プレビュー環境では保存できません」が出る",
+      "manual_or_automated": "automated",
+      "verification_method": "ローカルで VERCEL_ENV=preview と有効なトークンを設定して本番ビルドを起動し PUT を投げる。task_012 では Preview にトークンを一時的に入れ、PR のプレビュー URL からも確認する"
+    },
+    {
+      "id": "check_013",
+      "target": "環境変数ゼロでのビルドと表示（現行の性質の維持）",
+      "rule": "環境変数を1つも設定しない状態でも npm run build が通り、公開8ページが 200 で表示される",
+      "expected_result": "ビルド成功。8ルートすべて 200。内容は content/*.json のとおり。管理画面は 500 server_misconfigured",
+      "manual_or_automated": "automated",
+      "verification_method": "env -i 相当の環境で npm run build && npm start し、8ルートと /addiction-admin/login を curl する"
+    },
+    {
+      "id": "check_014",
+      "target": "公開出力の不変条件（最重要の回帰。§3.5）",
+      "rule": "公開8ページの可視テキスト・DOM 構造・class 集合・title/description が移行前と変わっていない。baseline は更新していない",
+      "expected_result": "npm run verify:text が既存の baseline に対して完全一致（8ルート / 要素1,891個 / テキストノード1,020個）。git log -- verification/ に本計画のコミットが無い",
+      "manual_or_automated": "automated",
+      "verification_method": "全タスクのコミットで npm run verify:text を実行する。git log --oneline -- verification/ を確認する"
+    },
+    {
+      "id": "check_015",
+      "target": "公開ページの静的化（§3.4 / §3.5）",
+      "rule": "公開8ルートがビルド時に静的生成される",
+      "expected_result": "npm run build の出力で8ルートが ○ (Static)。app/(public) に force-dynamic が1件も無い",
+      "manual_or_automated": "automated",
+      "verification_method": "npm run build の出力を保存し、grep -rn 'force-dynamic' 'app/(public)' が0件であることを確認する"
+    },
+    {
+      "id": "check_016",
+      "target": "Turso の完全撤去（§3.11）",
+      "rule": "libsql / Turso への参照がソースコードに1つも無く、依存が消えている",
+      "expected_result": "grep -rn 'libsql\\|TURSO_\\|getDbClient' lib/ app/ components/ scripts/ が0件。package.json / package-lock.json に @libsql が無い。lib/db.ts / scripts/db-migrate.mjs / scripts/db-seed.mjs / scripts/load-dev-vars.mjs が存在しない。scripts/verify-text.sh が .dev.vars を読まない",
+      "manual_or_automated": "automated",
+      "verification_method": "上記の grep と ls を実行し、npm ci が通ることを確認する"
+    },
+    {
+      "id": "check_017",
+      "target": "機械検証の一式",
+      "rule": "型・lint・ビルド・編集網羅性・回帰テストがすべて通る",
+      "expected_result": "npx tsc --noEmit / npm run build / npm run verify:coverage / node scripts/verify-youtube-id.mjs / node scripts/verify-blob-sha.mjs がすべて exit 0。npm run lint の指摘が移行前の件数から増えていない",
+      "manual_or_automated": "automated",
+      "verification_method": "5つのコマンドを順に実行する。lint は移行前の件数を先に記録しておいて比較する"
+    },
+    {
+      "id": "check_018",
+      "target": "Cloudflare Workers 版（§7.9 / §7.1）",
+      "rule": "Cloudflare 版が壊れていない。本番ビルドでは明示指定が無い限り LocalFsStore が選ばれない。掲載内容の反映には deploy:cf の再実行が要ることが文書化されている",
+      "expected_result": "opennextjs-cloudflare build が成功する。NODE_ENV=production で GITHUB_CONTENT_* が無いと getContentStore() が null（FS に落ちない）。CLAUDE.md と docs/deploy-vercel.md §7 に『Cloudflare 版は deploy:cf を打った時点のスナップショット』と書かれている",
+      "manual_or_automated": "manual",
+      "verification_method": "opennextjs-cloudflare build を実行する。本番ビルドを環境変数なしで起動して /addiction-admin/login が 500 になることを確認する。該当する記述を grep する"
+    },
+    {
+      "id": "check_019",
+      "target": "連続保存とビルドの扱い（§7.8）",
+      "rule": "短時間に複数回保存しても、ビルドは最後の1本に収束する",
+      "expected_result": "Vercel の Deployments で、先行するビルドが CANCELED になり最新だけが READY になる。ならなかった場合は計画書 §7.8 を実測に合わせて訂正する",
+      "manual_or_automated": "manual",
+      "verification_method": "task_012 の検証用プロジェクトで30秒以内に2回保存し、Deployments の状態を記録する"
+    },
+    {
+      "id": "check_020",
+      "target": "引き継ぎ文書（docs/deploy-vercel.md）",
+      "rule": "GitHub を知らない人が読んで、自分名義の PAT を作り Vercel に登録し WAF ルールを置いて立ち上げられる",
+      "expected_result": "Turso への言及が0件。PAT の権限（Only select repositories / Contents: Read and write / 他は No access / 有効期限）、発行者が Vercel プロジェクトの所有者本人であることとその理由、Production スコープのみに入れる理由、WAF ルールの手順、1日100デプロイの上限、全端末ログアウトの手順が書かれている。『未確認』『暫定』が残っていない",
+      "manual_or_automated": "manual",
+      "verification_method": "grep -n 'TURSO\\|Turso\\|libsql\\|/admin\\b\\|未確認\\|暫定' docs/deploy-vercel.md を確認し、第三者に手順どおり読ませる"
+    },
+    {
+      "id": "check_021",
+      "target": "エラー時の表示（§8.4）",
+      "rule": "GitHub に接続できないとき、管理画面が同梱JSONの古い内容を出さずにエラーを表示する。タイムアウトで関数がぶら下がらない",
+      "expected_result": "編集画面が「保存先（GitHub）に接続できませんでした」を表示する。古い内容のフォームが出ない。GET /api/addiction-admin/documents/films が 10 秒程度で 503 を返す",
+      "manual_or_automated": "automated",
+      "verification_method": "無効な GITHUB_CONTENT_TOKEN を設定して起動し、/addiction-admin と /addiction-admin/docs/films の表示と API の応答（ステータスと所要時間）を確認する"
+    },
+    {
+      "id": "check_022",
+      "target": "モバイル表示（管理画面）",
+      "rule": "版の表示形式と文言の変更でレイアウトが崩れていない",
+      "expected_result": "幅 375px で編集画面の見出し「最終保存 <日時>（<7桁>）」と履歴表が横スクロールなしで収まる（既存の .adm__row / .adm__nest のまま）",
+      "manual_or_automated": "manual",
+      "verification_method": "ブラウザのデバイスモードで /addiction-admin/docs/films を開いて目視する"
+    }
+  ]
+}
