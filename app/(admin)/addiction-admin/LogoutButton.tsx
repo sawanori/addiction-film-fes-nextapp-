@@ -10,14 +10,14 @@ export default function LogoutButton() {
   async function handleLogout() {
     setBusy(true);
     try {
-      await fetch("/api/admin/logout", {
+      await fetch("/api/addiction-admin/logout", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-aff-admin": "1" },
         body: "{}",
       });
     } finally {
       // Cookie が消えているので、再取得すればログイン画面へリダイレクトされる
-      router.replace("/admin/login");
+      router.replace("/addiction-admin/login");
       router.refresh();
     }
   }

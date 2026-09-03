@@ -39,7 +39,7 @@ export default async function AdminDocumentPage({
   const { key } = await params;
 
   // 認証チェックはこのページの先頭で行う（レイアウトでは足りない。lib/admin/session.ts 参照）
-  await requireAdminSession(`/admin/docs/${key}`);
+  await requireAdminSession(`/addiction-admin/docs/${key}`);
 
   if (!(DOCUMENT_KEYS as string[]).includes(key)) notFound();
 

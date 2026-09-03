@@ -47,7 +47,7 @@ function formatDateTime(iso: string): string {
 
 export default async function AdminDashboardPage() {
   // 認証チェックはレイアウトではなくページ側で行う（lib/admin/session.ts のコメント参照）
-  await requireAdminSession("/admin");
+  await requireAdminSession("/addiction-admin");
 
   const documents = await listDocuments();
   const sorted =
@@ -95,7 +95,7 @@ export default async function AdminDashboardPage() {
                   最終更新 {formatDateTime(doc.updatedAt)}　/　版 {doc.revision}
                 </div>
                 <div className="adm__card-actions">
-                  <Link className="adm__button" href={`/admin/docs/${doc.key}`}>
+                  <Link className="adm__button" href={`/addiction-admin/docs/${doc.key}`}>
                     編集する
                   </Link>
                   {PUBLIC_PATH[doc.key] ? (

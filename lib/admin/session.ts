@@ -60,11 +60,11 @@ export const getAdminSession = cache(async (): Promise<SessionPayload | null> =>
   return payload;
 });
 
-/** ページ用。セッションが無ければ /admin/login?next=... へリダイレクトする。 */
+/** ページ用。セッションが無ければ /addiction-admin/login?next=... へリダイレクトする。 */
 export async function requireAdminSession(nextPath: string): Promise<SessionPayload> {
   const session = await getAdminSession();
   if (!session) {
-    redirect(`/admin/login?next=${encodeURIComponent(nextPath)}`);
+    redirect(`/addiction-admin/login?next=${encodeURIComponent(nextPath)}`);
   }
   return session;
 }

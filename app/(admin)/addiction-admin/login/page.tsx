@@ -6,20 +6,20 @@ export const metadata = {
 
 /**
  * next クエリの検証はサーバ側で行う（オープンリダイレクト対策）。
- * /admin で始まり、かつ // で始まらないものだけ採用する。
+ * /addiction-admin で始まり、かつ // で始まらないものだけ採用する。
  */
 function resolveNext(nextParam: string | string[] | undefined): string {
   if (
     typeof nextParam === "string" &&
-    nextParam.startsWith("/admin") &&
+    nextParam.startsWith("/addiction-admin") &&
     !nextParam.startsWith("//")
   ) {
     return nextParam;
   }
-  return "/admin";
+  return "/addiction-admin";
 }
 
-export default async function AdminLoginPage({ searchParams }: PageProps<"/admin/login">) {
+export default async function AdminLoginPage({ searchParams }: PageProps<"/addiction-admin/login">) {
   const params = await searchParams;
   return <LoginForm next={resolveNext(params.next)} />;
 }

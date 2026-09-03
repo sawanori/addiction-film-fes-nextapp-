@@ -103,7 +103,7 @@ export default function DocumentEditor({
     setErrors([]);
     setStatus(null);
     try {
-      const res = await fetch(`/api/admin/documents/${docKey}`, {
+      const res = await fetch(`/api/addiction-admin/documents/${docKey}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "x-aff-admin": "1" },
         body: JSON.stringify({ baseRevision: revision, data, note: note || null }),
@@ -146,7 +146,7 @@ export default function DocumentEditor({
     setBusy(true);
     setStatus(null);
     try {
-      const res = await fetch(`/api/admin/documents/${docKey}/revert`, {
+      const res = await fetch(`/api/addiction-admin/documents/${docKey}/revert`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-aff-admin": "1" },
         body: JSON.stringify({ revision: target }),
@@ -203,7 +203,7 @@ export default function DocumentEditor({
 
       <main className="adm__page">
         <p className="adm__lead">
-          <Link href="/admin">← 一覧にもどる</Link>
+          <Link href="/addiction-admin">← 一覧にもどる</Link>
           {publicPath ? (
             <>
               {" ・ "}

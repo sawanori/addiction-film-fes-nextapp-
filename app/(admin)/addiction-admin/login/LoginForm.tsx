@@ -12,7 +12,7 @@ export default function LoginForm({ next }: { next: string }) {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/login", {
+      const res = await fetch("/api/addiction-admin/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
