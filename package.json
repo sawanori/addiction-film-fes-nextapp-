@@ -9,6 +9,7 @@
     "lint": "eslint",
     "verify:text": "bash scripts/verify-text.sh",
     "verify:coverage": "node scripts/verify-coverage.mjs",
+    "verify:blob-sha": "node scripts/verify-blob-sha.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:seed": "node scripts/db-seed.mjs",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
