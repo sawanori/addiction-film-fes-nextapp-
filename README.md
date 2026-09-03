@@ -7,7 +7,7 @@
 > **[`docs/deploy-vercel.md`](docs/deploy-vercel.md)** にまとめてある。
 > 掲載内容の編集は `/addiction-admin`（管理画面）から行う。**保存すると
 > `content/*.json` が GitHub にコミットされ、1〜2分ほどで自動デプロイされて
-> 公開ページに反映される**（所要時間は暫定）。
+> 公開ページに反映される**（実測 31秒〜102秒）。
 
 ```
 index.html       トップ
