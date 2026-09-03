@@ -1,23 +1,34 @@
 # Vercel へのデプロイ手順（引き継ぎ用）
 
 このリポジトリを GitHub で管理し、Vercel へデプロイするための手順。
-2026-08-27 時点の構成に基づく。
+2026-09-03 時点の構成に基づく。
+
+**掲載内容の保存先はこのリポジトリ自身**である。データベースも外部サービスも要らない。
+管理画面で保存すると `content/<key>.json` が GitHub にコミットされ、そのコミットを
+Vercel が拾って本番デプロイし、公開ページに反映される。
 
 現状は Cloudflare Workers にもデプロイできる状態が残してある（`npm run deploy:cf`）。
-Vercel へ移したあとも当面は両方動くので、切り替えが済むまで並行させてよい。
+ただし Cloudflare 版は掲載内容の更新に**追随しない**（§7）。
 
 ---
 
 ## クイックスタート（先方へそのまま渡せる手順）
 
 1. GitHub の当該リポジトリを clone（または Fork / Transfer で自分のアカウントに置く）
-2. Vercel で **Add New → Project → Import**。Framework Preset が **Next.js** になる
-3. **Deploy を押す前に**、Environment Variables に4つ登録する（値は制作側から受け取る）
-   - `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` / `ADMIN_PASSWORD_PBKDF2` / `ADMIN_SESSION_SECRET`
-   - **Production と Preview で値を分ける**（理由は §2。同じにすると
-     プレビューURLから本番の掲載内容を書き換えられる）
-4. Deploy
-5. 発行されたURLで、公開ページの表示と `/admin` のログインを確認する
+2. **自分の GitHub アカウントで fine-grained personal access token を作る**（作り方と
+   権限は §2。**制作側が作ったトークンでは公開に反映されない**ので、必ず自分名義で作る）
+3. Vercel で **Add New → Project → Import**。Framework Preset が **Next.js** になる
+4. **Deploy を押す前に**、Environment Variables に登録する（§2）
+   - 必須4つ: `GITHUB_CONTENT_TOKEN` / `GITHUB_CONTENT_REPO` /
+     `ADMIN_PASSWORD_PBKDF2` / `ADMIN_SESSION_SECRET`
+   - 任意1つ: `GITHUB_CONTENT_BRANCH`（省略時 `main`）
+   - **`GITHUB_CONTENT_TOKEN` は Production スコープだけに入れる。**
+     Preview には管理画面のパスワードと署名鍵だけを、本番と**別の値**で入れる（理由は §2）
+5. Deploy
+6. Vercel の **Firewall** にログインのレート制限ルールを1つ置く（手順は §8）
+7. 発行されたURLで、公開ページの表示と **`/addiction-admin`** のログインを確認する
+8. 管理画面で何か1つ編集して保存し、**1〜2分後**に公開ページへ反映されることを確認する
+   （所要時間は暫定。実測後に確定する）
 
 ビルド設定・出力ディレクトリ・インストールコマンドは**すべて既定のまま**でよい。
 Node のバージョンも `package.json` の `engines.node`（22.x）が効くので触らない。
@@ -33,18 +44,20 @@ Node のバージョンも `package.json` の `engines.node`（22.x）が効く�
 **先方がリポジトリを pull し、先方の Vercel アカウントでプロジェクトを立てる。**
 制作側は Vercel の操作を代行しない。
 
-そのために先方へ渡すものは2つだけ。
+そのために先方へ渡すものは2つ。
 
 1. **GitHub リポジトリへのアクセス**（現在 `sawanori/addiction-film-fes-nextapp-`）。
    Collaborator に招待するか、Transfer する。Vercel の Import 画面には
    「連携した GitHub アカウントが読めるリポジトリ」しか出ないため、
    **先方自身のアカウントに読める状態**にしておく必要がある。
-2. **環境変数4つの値**（§2）。**リポジトリには入っていない**ので別途受け渡す。
+2. **環境変数の値**（§2）。**リポジトリには入っていない**ので別途受け渡す。
    チャットやメールに平文で貼らず、パスワードマネージャの共有機能などを使う。
 
-残る唯一の判断は **Turso（DB）をどうするか**（§5）。
-現行DBの接続情報をそのまま渡せば、その日から本番の掲載内容が出る。
-先方が自前のDBを持ちたい場合は §5-A の手順で作り直す。
+**`GITHUB_CONTENT_TOKEN` だけは制作側から渡さない。先方が自分の GitHub アカウントで作る**
+（理由は §2 の「トークンの発行者」）。先方が GitHub アカウントを持っていない場合は、
+アカウントを先方名義で作るところから始める。
+
+データベースは無くなったので、**掲載内容の移送作業も不要**である（§5）。
 
 独自ドメインは未定でよい（`*.vercel.app` のままで動く）。
 
@@ -63,43 +76,90 @@ Node のバージョンも `package.json` の `engines.node`（22.x）が効く�
 
 - Node のバージョンは `package.json` の `engines.node`（`22.x`）が効くので、
   プロジェクト設定で選び直す必要はない。
-- `vercel.json` で実行リージョンを **東京（`hnd1`）** に固定してある。
-  公開8ページは毎回DBを読む作りなので、DB（Turso の `aws-ap-northeast-1`）と
-  近い場所で動かすほうが速い。DBのリージョンを変える場合はここも合わせる。
+- `vercel.json` で実行リージョンを **東京（`hnd1`）** に固定してある。公開8ページは
+  ビルド時に静的生成されるので、この設定が効くのは管理画面まわりの処理だけ。触らなくてよい。
 
 ---
 
-## 2. 環境変数（4つ）
+## 2. 環境変数
 
 `Project Settings → Environment Variables` に登録する。名前と役割は `.env.example` にも同じものがある。
 
-| 変数名 | 役割 | 未設定だとどうなるか |
-|---|---|---|
-| `TURSO_DATABASE_URL` | 掲載内容のDBのURL | 公開ページはリポジトリ同梱の `content/*.json` で表示される（落ちない）。管理画面は使えない |
-| `TURSO_AUTH_TOKEN` | 同上の認証トークン | 同上 |
-| `ADMIN_PASSWORD_PBKDF2` | 管理画面のパスワードのハッシュ | 管理画面が 500（`server_misconfigured`） |
-| `ADMIN_SESSION_SECRET` | ログインCookieの署名鍵 | 同上 |
+| 変数名 | 必須 | 役割 | 未設定だとどうなるか |
+|---|---|---|---|
+| `GITHUB_CONTENT_TOKEN` | 必須 | 掲載内容を GitHub へ書き込むトークン。**Production スコープだけ**に入れる | 公開ページはリポジトリ同梱の `content/*.json` で表示される（落ちない）。管理画面は使えない |
+| `GITHUB_CONTENT_REPO` | 必須 | 保存先リポジトリ。`owner/repo` 形式（例 `sawanori/addiction-film-fes-nextapp-`）。Fork / Transfer したら自分のものに書き換える | 同上 |
+| `GITHUB_CONTENT_BRANCH` | 任意 | 保存先ブランチ。**省略時は `main`** | 既定の `main` が使われる |
+| `ADMIN_PASSWORD_PBKDF2` | 必須 | 管理画面のパスワードのハッシュ | 管理画面が 500（`server_misconfigured`） |
+| `ADMIN_SESSION_SECRET` | 必須 | ログインCookieの署名鍵 | 同上 |
+| `CONTENT_STORE` | ローカル専用 | 保存先の実装を明示する。`fs` を指定すると `npm start` でも作業ツリーの `content/*.json` に保存する | 通常は未設定でよい。`next dev` は指定しなくても FS を使う |
 
-### ⚠ Production と Preview で値を分ける
+Vercel に登録するのは上の**必須4つ**（ブランチを変えるなら `GITHUB_CONTENT_BRANCH` を足して5つ）。
+`CONTENT_STORE` は Vercel には入れない。
+
+### トークン（PAT）の作り方
+
+GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens** →
+**Generate new token**。
+
+| 設定項目 | 値 |
+|---|---|
+| Resource owner | リポジトリの所有者（Transfer 済みなら自分） |
+| Repository access | **Only select repositories** → 対象リポジトリ1つだけ |
+| Repository permissions | **Contents: Read and write** だけ（Metadata: Read は自動で付く） |
+| そのほかの permissions | **すべて No access** |
+| Expiration（有効期限） | 設定する（fine-grained は最長1年） |
+
+Contents の読み書きだけなら、万一漏れても**このリポジトリのファイルを書き換えられる**だけで、
+ほかのリポジトリ・組織設定・Actions には触れない。
+
+**有効期限を必ずこの手順書に書き留め、切れる前に更新する。**
+
+| 有効期限 | 更新した日 | 次の更新期限 |
+|---|---|---|
+| （記入する） | （記入する） | （記入する） |
+
+期限が切れると、管理画面で保存したときに「保存先に接続できません」と出るようになる。
+そのときは新しいトークンを同じ権限で発行し、Vercel の `GITHUB_CONTENT_TOKEN` を差し替えて
+再デプロイする（公開ページは無事なので、慌てなくてよい）。
+
+### ⚠ トークンの発行者（いちばん間違えやすいところ）
+
+**トークンは、Vercel プロジェクトを持っている本人の GitHub アカウントで発行する。**
+
+Vercel の Hobby プランは **アカウント所有者のコミットしかデプロイを起動しない**
+（出所: Vercel の KB「Why aren't commits triggering deployments on Vercel」）。
+管理画面の保存で作られるコミットの author はトークンの持ち主になるので、
+**制作側が発行したトークンを先方の Vercel で使うと、保存はコミットになるのに
+デプロイが走らず、いつまでも公開に反映されない**。
+
+Pro プラン以降ならチームメンバーのコミットでもデプロイされる。
+
+### ⚠ Preview から本番を書き換えられないようにする（3枚重ね）
 
 Vercel は既定で **Production / Preview / Development** の3つに同じ値を入れられるが、
-**Preview に本番DBの値を入れてはいけない。**
-プルリクエストごとに作られるプレビューURLから `/admin` に入られると、
-本番の掲載内容がそのまま書き換わってしまうため。
+**Preview に `GITHUB_CONTENT_TOKEN` を入れてはいけない。**
+プルリクエストごとに作られるプレビューURLの `/addiction-admin` に入られると、
+本番の掲載内容がそのまま書き換わってしまうため。`GITHUB_CONTENT_BRANCH` を変えても
+**トークン自体が `main` を書ける**ので対策にならない。
+
+塞ぎ方を3つ重ねている。
+
+1. **設定**: `GITHUB_CONTENT_TOKEN` を **Production スコープだけ**に登録する。
+   Preview の管理画面は保存先が無いので 500 になる（公開ページは同梱 JSON で動く）。
+2. **コード**: プレビュー環境（`VERCEL_ENV=preview`）での保存はコード側で **403** に拒否する。
+   1 の設定ミスへの保険なので、こちらは何もしなくてよい。
+3. **設定**: `Project Settings → Deployment Protection` で
+   **Preview の保護（Vercel Authentication）を有効にする**。あわせて
+   `ADMIN_PASSWORD_PBKDF2` は Preview では本番と別の値にする。
 
 推奨:
 
-| 環境 | Turso | 管理画面のパスワード |
+| 環境 | `GITHUB_CONTENT_TOKEN` | 管理画面のパスワード |
 |---|---|---|
-| Production | 本番DB | 本番用 |
-| Preview | 開発用DB（別インスタンス） | 開発用（本番と別のものにする） |
-| Development | 開発用DB | 開発用 |
-
-開発用DBが不要なら、Preview には Turso の2つを**入れない**という手もある。
-その場合プレビューは同梱JSONを表示し、管理画面だけ使えない状態になる。
-
-あわせて `Project Settings → Deployment Protection` で
-**Preview の保護（Vercel Authentication）を有効にする**ことを勧める。
+| Production | 入れる | 本番用 |
+| Preview | **入れない** | 本番と別のもの |
+| Development | 入れない | 開発用 |
 
 ### パスワード・鍵の作り方
 
@@ -111,9 +171,12 @@ echo -n '設定したいパスワード' | node scripts/hash-password.mjs --iter
 node -e "console.log(crypto.randomBytes(32).toString('base64'))"
 ```
 
+元にするパスワードは **20文字以上のランダムな文字列**にし、ほかのサービスと使い回さない。
+ログイン試行の回数をサーバ側で共有して数える仕組みが無くなったぶん（§8）、
+最終的な守りはパスワードそのものの強さになる。
+
 `ADMIN_SESSION_SECRET` を変えると、発行済みのログインはすべて無効になる。
-パスワードを変えたときに全端末をログアウトさせたい場合は、
-DBの `admin_settings.session_version` を +1 する（`docs/PROGRESS.md` §14 に前例がある）。
+これが**全端末をログアウトさせる唯一の手段**である（手順は §5）。
 
 ---
 
@@ -122,19 +185,28 @@ DBの `admin_settings.session_version` を +1 する（`docs/PROGRESS.md` §14 �
 - `main` に push → **本番デプロイ**
 - それ以外のブランチ / プルリクエスト → **プレビューデプロイ**（URLが自動で発行される）
 
-掲載内容の変更は**コードのデプロイとは無関係**である点に注意。
-本文はDBに入っているので、管理画面（`/admin`）で保存した時点で公開ページに反映される。
-デプロイは要らない。
+**掲載内容の変更も同じ経路を通る。**
 
-逆に、`content/*.json` を編集しただけではサイトの表示は変わらない
-（あれは初期投入用の正典データとフォールバック）。DBへ反映するには:
-
-```bash
-node scripts/db-seed.mjs --force
+```
+管理画面で保存
+  → content/<key>.json に 1コミット（GitHub）
+  → Vercel が自動で本番デプロイ
+  → 公開ページに反映（1〜2分。暫定。実測後に確定）
 ```
 
-を、対象DBの接続情報を渡して実行する。**実行前に必ずDBを退避すること**
-（管理画面での編集を上書きするため。手順は `docs/PROGRESS.md` §15.2）。
+覚えておくとよいこと。
+
+- **何も変えずに保存してもコミットは増えない。** 保存しようとした内容が現在のファイルと
+  同一なら、コミットを作らずに終わる（無駄なビルドを1本増やさないため）。
+- **続けて何回も保存した場合**、Vercel が古いビルドを自動でキャンセルし、最新の1本だけを
+  残す。順番が入れ替わることはない。
+- **1日にデプロイできる本数には上限がある。** Hobby プランは
+  **1日100本 / 1時間100本 / 5分60本**（出所: `vercel.com/docs/limits`）。
+  1保存 = 1デプロイなので、会期前に1日数十回更新しても届かない。
+  もし上限に当たると、その日はそれ以上デプロイされない
+  （**保存＝コミット自体は成功している**ので、翌日のデプロイで反映される）。
+- **`content/*.json` を手で編集して push しても同じように反映される。** 管理画面と
+  同じファイルを触っているだけなので、経路は1本しかない。
 
 ---
 
@@ -147,9 +219,13 @@ for r in / /about /programme /tickets /news /privacy /terms /legal; do
 done
 ```
 
-- 管理画面 `https://<デプロイURL>/admin` にログインできるか
-- 公開ページの文言がDBの内容（管理画面で見えるもの）と一致しているか
-  - 一致していなければ環境変数が入っていない可能性が高い（同梱JSONを表示している）
+- 管理画面 `https://<デプロイURL>/addiction-admin` にログインできるか
+- **`https://<デプロイURL>/admin` が 404 になるか**（旧URL。残っていたら古いビルドを見ている）
+- 管理画面で本文を1箇所だけ編集して保存し、
+  1. GitHub の当該リポジトリに `content(<key>): 管理画面から更新` というコミットが1つできるか
+  2. そのコミットで Vercel のデプロイが**自動的に始まる**か
+     （始まらなければトークンの発行者を疑う。§2）
+  3. デプロイ完了後、公開ページに反映されているか。ここで**かかった時間を計る**
 
 見た目・文言が変換元の静的HTMLと一致しているかまで見るなら:
 
@@ -159,34 +235,33 @@ npm run build && BASE_URL=https://<デプロイURL> npm run verify:text
 
 ---
 
-## 5. Turso（DB）の扱い
+## 5. 掲載内容の所在と履歴（GitHub）
 
-掲載内容はすべて Turso に入っている。選択肢は2つ。
+掲載内容は **このリポジトリの `content/*.json`（11ファイル）** に入っている。
+外部のデータベースは使っていないので、**Vercel へ移すときのデータ移送作業は無い。**
+リポジトリを clone した時点で中身も付いてくる。
 
-### A. 先方が自前のDBを作る
+### 履歴を見る・前の内容に戻す
 
-Turso でDBを作ってから、リポジトリのスクリプトでスキーマとデータを入れる。
+- 管理画面の編集ページに、そのファイルの**コミット20件**が新しい順で並ぶ。
+  日時・メモ欄に入力した文言・コミットの短縮SHAが出る。
+- 「この版に戻す」を押すと、その時点の内容を**新しいコミットとして書き戻す**。
+  履歴が消えたり巻き戻ったりはしない。戻したあとも1〜2分で公開に反映される。
+- **20件より前**を見たいときは、履歴表の下にある GitHub へのリンクから
+  そのファイルのコミット一覧を開く。GitHub の画面では差分も見られる。
 
-```bash
-# 接続情報を .env.local に書いてから（.dev.vars でも可）
-npm run db:migrate   # テーブルを作る（content_documents / content_revisions /
-                     #                login_attempts / admin_settings / schema_migrations）
-npm run db:seed      # content/*.json の内容を投入する
-```
+### トークンの期限が切れたら
 
-**注意**: `content/*.json` は**リポジトリ同梱の正典データ**であって、現行サイトの
-最新状態とは限らない。管理画面から入れた変更は現行DBにしかないので、
-最新の内容を引き継ぐなら制作側から現行DBの中身（`content_documents`）を書き出して渡す。
+症状は「管理画面で保存すると『保存先に接続できません』と出る」。公開ページは
+静的に配信されているので**影響を受けない**。§2 の手順で新しいトークンを発行し、
+Vercel の `GITHUB_CONTENT_TOKEN` を差し替えて再デプロイする。
 
-### B. 現行のDBをそのまま使う
+### 全端末をログアウトさせたいとき
 
-制作側の Turso の接続情報（`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN`）を渡すだけ。
-移行作業もデータ移送も要らず、その日から本番の掲載内容が出る。
-運用中の編集は管理画面で完結するので、先方が Turso の管理画面を触る必要はない。
-
-移行期間中に Cloudflare 版と Vercel 版を並行させる場合、**同じDBを見せておくと
-両方の表示が自動で揃う**（DBは1つ、フロントが2つという状態になる）。
-切り替えが済んだら Cloudflare 側を止める。
+`ADMIN_SESSION_SECRET` を新しいランダム文字列に差し替えて**再デプロイする**（§2）。
+発行済みのログインCookieがすべて無効になる。これが唯一の手段で、
+パスワードを変えるだけでは既にログイン済みの端末は切れない。
+**パスワード変更（`ADMIN_PASSWORD_PBKDF2` の差し替え）と一緒に行うこと。**
 
 ---
 
@@ -207,12 +282,47 @@ npm run db:seed      # content/*.json の内容を投入する
 ## 7. Cloudflare 版について
 
 `wrangler.jsonc` / `open-next.config.ts` / `npm run deploy:cf` は残してある。
+
+**注意: Cloudflare 版は掲載内容の更新に自動で追随しない。**
+管理画面の保存先は GitHub なので、保存すると Vercel だけが自動でデプロイし直す。
+Cloudflare 側は **`npm run deploy:cf` を打った時点の `content/*.json` のスナップショット**
+であり続ける。最新の内容を出すには `npm run deploy:cf` をもう一度実行する。
+
+（Cloudflare 版でも管理画面は動き、保存すれば GitHub にコミットされる。
+反映先が Vercel だけ、という非対称になる。）
+
 Vercel へ完全に移行して不要になったら、次を消せばよい（消さなくても Vercel 側に害はない）。
 
-- `wrangler.jsonc`、`open-next.config.ts`、`cloudflare-env.d.ts`
+- `wrangler.jsonc`、`open-next.config.ts`
 - `package.json` の `preview:cf` / `deploy:cf` / `upload:cf` / `cf-typegen`
 - 依存の `@opennextjs/cloudflare`、`wrangler`
-- `next.config.ts` 末尾の `initOpenNextCloudflareForDev` の呼び出しと
-  `outputFileTracingIncludes`（どちらも Cloudflare 向けの回避策）
+- `next.config.ts` 末尾の `initOpenNextCloudflareForDev` の呼び出し
 
 消す場合は、消したあとに `npm run build` と `npm run verify:text` を通すこと。
+
+---
+
+## 8. ログインのレート制限（Vercel WAF ルール）
+
+管理画面のパスワードを総当たりされないための設定。**Hobby プランでも1ルール使える**
+（出所: `vercel.com/docs/vercel-firewall/vercel-waf/rate-limiting`）。
+デプロイが終わったら入れておく。
+
+1. Vercel のダッシュボード → 対象プロジェクト → **Firewall**
+2. **Configure** → **+ New Rule**
+3. 条件を2つ置く（AND）
+   - **Request Path** が `/api/addiction-admin/login` に **equals**
+   - **Method** が `POST` に **equals**
+4. **Then** で **Rate Limit** を選ぶ
+   - 窓（window）: **10分**（Hobby で選べる最長）
+   - 上限: **10回**
+   - キー: **IP**
+5. **Save Rule** → **Review Changes** → **Publish**
+
+補足:
+
+- カウンタは**リージョン単位**なので、複数リージョンから分散して試行されると
+  上限を超えうる。単一IPからの総当たりには十分効く。
+- コード側にも、関数インスタンスのメモリ上で「5回失敗したら15分ロック」する
+  簡易な制限が入っている。ただしインスタンス単位でしか効かないので、
+  **主たる守りはこの WAF ルールとパスワードの強さ**（§2）である。

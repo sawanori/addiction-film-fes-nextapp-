@@ -5,7 +5,9 @@
 
 > **デプロイと引き継ぎ**: Vercel への移行手順・環境変数・公開前チェックは
 > **[`docs/deploy-vercel.md`](docs/deploy-vercel.md)** にまとめてある。
-> 掲載内容の編集は `/admin`（管理画面）から行い、**デプロイは不要**。
+> 掲載内容の編集は `/addiction-admin`（管理画面）から行う。**保存すると
+> `content/*.json` が GitHub にコミットされ、1〜2分ほどで自動デプロイされて
+> 公開ページに反映される**（所要時間は暫定）。
 
 ```
 index.html       トップ
@@ -222,5 +224,5 @@ content="noindex">` も入れてある。`sitemap.xml` のドメインは `https
   - スクロールリビールは遷移のたびに新しい `.rise` を拾い直す。
 - **フレームワーク由来の追加要素**（見た目・文言には影響なし）：`app/favicon.ico` 由来の `<link rel="icon">`、`loading="lazy"` でない `<img>` への `<link rel="preload" as="image">`（LCP 最適化）、Next のJS/CSSチャンク参照。
 - 「Stay in the Loop」メール登録セクションは 2026年8月にチケット手売り化で変換元から削除されたため、こちらも `NewsletterForm` コンポーネントごと削除した（変換元 `5fe3163` 追随。`.newsletter` / `.social` の CSS 定義は変換元と同じく残している）。
-- **予告編の動画は管理画面から登録する。** 変換元は HTML に `data-trailer="動画ID"` を直書きするが、こちらは `content/films.json` の `trailer` に持たせて `/admin/docs/films` から編集する。動画URLをそのまま貼れて、保存時に動画IDへ変換される（`lib/content/youtube.ts`）。これは「保存時に文字列を加工しない」方針（`docs/implementation-plan.md` §8.4）に対する**唯一の例外**で、`manifest-core.ts` の `PATH_FORMATS` に挙げた欄にだけ効く。YouTube と解釈できない非空の値は 422 で拒否する（壊れた埋め込みを公開ページに出さないため）。読み上げ文と帯の文字を空にしたまま登録した場合は、`components/Films.tsx` が既存2作品と同じ書式の既定値（`『作品名』の予告編を再生` と `Trailer`）で補う。
+- **予告編の動画は管理画面から登録する。** 変換元は HTML に `data-trailer="動画ID"` を直書きするが、こちらは `content/films.json` の `trailer` に持たせて `/addiction-admin/docs/films` から編集する。動画URLをそのまま貼れて、保存時に動画IDへ変換される（`lib/content/youtube.ts`）。これは「保存時に文字列を加工しない」方針（`docs/implementation-plan.md` §8.4）に対する**唯一の例外**で、`manifest-core.ts` の `PATH_FORMATS` に挙げた欄にだけ効く。YouTube と解釈できない非空の値は 422 で拒否する（壊れた埋め込みを公開ページに出さないため）。読み上げ文と帯の文字を空にしたまま登録した場合は、`components/Films.tsx` が既存2作品と同じ書式の既定値（`『作品名』の予告編を再生` と `Trailer`）で補う。
 - 画像はすべて通常の `<img>`（`next/image` 不使用）。`@next/next/no-img-element` の ESLint 警告は仕様どおり許容。`npm run build`（型チェック含む）と `npx tsc --noEmit` は両方通過済み。

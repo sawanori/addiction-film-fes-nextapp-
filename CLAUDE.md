@@ -12,6 +12,7 @@ npm run build      # 本番ビルド（型チェック込み）
 npx tsc --noEmit   # 型チェック単独
 npm run lint       # ESLint（eslint-config-next の core-web-vitals + typescript）
 npm start          # 本番ビルドの起動（見た目の差分検証はこれで行う）
+npm run verify:blob-sha  # 直列化と blob sha が git hash-object と一致するか
 npm run deploy:cf  # Cloudflare Workers へデプロイ（Vercel は git push で自動）
 ```
 
@@ -19,17 +20,25 @@ npm run deploy:cf  # Cloudflare Workers へデプロイ（Vercel は git push �
 
 **Vercel（主）** — `main` への push で本番デプロイ、それ以外のブランチはプレビュー。
 手順・環境変数・引き継ぎ事項は `docs/deploy-vercel.md`。設定は `vercel.json`
-（実行リージョンを東京 `hnd1` に固定。公開8ページが毎回 Turso を読むため）。
+（実行リージョンを東京 `hnd1` に固定。公開8ページは静的生成なので、効くのは管理画面まわり）。
+
+**掲載内容の保存先は GitHub リポジトリ自身**（`content/<key>.json`）。管理画面で保存すると
+1コミットができ、それを Vercel が拾って本番デプロイし、**1〜2分ほどで公開に反映される**
+（この数値は暫定で、task_012 の実測後に確定する）。何も変えずに保存してもコミットは増えない。
 
 **Cloudflare Workers（従）** — `npm run deploy:cf`。移行期間中の並行運用として残してある。
 `wrangler.jsonc` / `open-next.config.ts` / `next.config.ts` 末尾の
-`initOpenNextCloudflareForDev` と `outputFileTracingIncludes` がこちら向け。
-不要になったら消せる（消す範囲は `docs/deploy-vercel.md` §7）。
+`initOpenNextCloudflareForDev` がこちら向け。不要になったら消せる
+（消す範囲は `docs/deploy-vercel.md` §7）。**Cloudflare 版は `deploy:cf` を打った時点の
+`content/*.json` のスナップショット**で、管理画面で保存しても自動更新されない
+（GitHub に書かれ、Vercel だけが追随する）。
 
-環境変数は4つ（`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` / `ADMIN_PASSWORD_PBKDF2` /
-`ADMIN_SESSION_SECRET`）。見本は `.env.example`。ローカルは `.dev.vars` でも
-`.env.local` でも動く（`scripts/load-dev-vars.mjs` が両方読む）。
-**Turso の2つが未設定でも公開ページは落ちず、同梱の `content/*.json` で表示される**
+環境変数は必須4つ（`GITHUB_CONTENT_TOKEN` / `GITHUB_CONTENT_REPO` /
+`ADMIN_PASSWORD_PBKDF2` / `ADMIN_SESSION_SECRET`）＋任意の `GITHUB_CONTENT_BRANCH`
+（省略時 `main`）。ローカル専用に `CONTENT_STORE=fs` があり、指定すると `npm start` でも
+作業ツリーの `content/*.json` に保存する（`next dev` では指定不要）。見本は `.env.example`、
+ローカルは `.env.local` に置く。
+**環境変数がゼロでも公開8ページは同梱の `content/*.json` で表示される**
 （管理画面だけが 500 になる）。実測で確認済み。
 
 テストランナーは導入していない。変更の検証は `npm run build` + `npx tsc --noEmit` と、後述の HTML 突き合わせで行う。
@@ -65,6 +74,7 @@ npm run deploy:cf  # Cloudflare Workers へデプロイ（Vercel は git push �
 | `ScrollReveal` (client) | layout に1つだけ置く。`.rise:not(.is-in)` を IntersectionObserver（`rootMargin:'0px 0px -10% 0px'`, `threshold:0.08`）で拾い、クライアント遷移のたびに再スキャン |
 | `TrailerModal` (client) | 予告編の YouTube モーダル。`(public)/layout.tsx` がフッター直後に置くが、変換元で `<dialog>` を持つ index / programme 以外では null。`.film__play` は DOM から拾ってリスナーを付け、iframe は開いたとき生成・閉じたら破棄 |
 | `lib/content/youtube.ts` | 予告編の動画URL→動画ID変換。管理画面のサーバ側（`lib/admin/ops.ts`）とクライアント側（`FieldEditor`）が同じ規則を使う。回帰テストは `node scripts/verify-youtube-id.mjs` |
+| `lib/content/store*.ts` | 管理画面から見た保存先の契約（`store.ts` の `ContentStore`）と2実装（`store-github.ts` / `store-fs.ts`）。直列化は `serializeDocument()` に固定し、楽観ロックは git の blob sha で行う。`getContentStore()` の選択規則は**本番ビルドでは明示指定（`CONTENT_STORE=fs`）が無い限り FS 実装を選ばない**（Cloudflare Workers 上で `node:fs` に書けたように見えて消えるのを防ぐため） |
 | `Films` | index / programme で共有する上映作品グリッド。両ページ唯一の差異（04「一瞬の楽園」のクレジット）を `variant: "index" \| "programme"` で出し分ける。`trailer` を持つ作品（04・05）だけ `.film__play` ボタンを描画 |
 | `SmartLink` | `#` 始まりは素の `<a>`、それ以外の内部リンクは `next/link`。ヘッダー/フッターの内部リンクはこれを通す |
 
@@ -110,9 +120,11 @@ import alias は `@/*` → リポジトリルート。
 ```bash
 npm run verify:coverage              # 全リーフが manifest から編集できるか
 node scripts/verify-youtube-id.mjs   # 予告編の動画URL→動画ID変換の規則
-npm run verify:text                  # 公開8ルートの DOM パス比較（dev DB を読む）
+npm run verify:blob-sha              # 直列化 + blob sha が git hash-object と一致するか
+npm run verify:text                  # 公開8ルートの DOM パス比較
 ```
 
-`verify:text` は `.dev.vars` の dev DB を読むので、**管理画面で試し書きをしたら
-`node scripts/db-seed.mjs --force` で戻してから**実行する。戻さずに差分が出たときに
-baseline を更新してはいけない。
+`verify:text` は環境変数なしで本番ビルドを起動し、同梱の `content/*.json` で検証する。
+`next dev` の管理画面は作業ツリーの `content/*.json` を直接書き換えるので、
+**試し書きをしたら `git checkout -- content/` で戻してから**実行する。
+戻さずに差分が出たときに baseline を更新してはいけない。
