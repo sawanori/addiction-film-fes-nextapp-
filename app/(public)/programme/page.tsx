@@ -135,6 +135,34 @@ export default async function ProgrammePage() {
               </div>
             ))}
           </div>
+
+          {/* 住所と周辺地図。地図は印刷物と同じ図版で、原寸が 448px なので
+              引き伸ばさないよう flex-basis をその幅に合わせている */}
+          <div
+            style={{
+              marginTop: "32px",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "clamp(24px,3vw,48px)",
+              alignItems: "flex-start",
+            }}
+          >
+            <figure style={{ margin: 0, flex: "0 1 448px" }}>
+              <img
+                src={venue.access.img.src}
+                alt={venue.access.img.alt}
+                loading="lazy"
+              />
+            </figure>
+            <div style={{ flex: "1 1 280px", minWidth: 0 }}>
+              <h3>{venue.access.h}</h3>
+              <p style={{ marginTop: "10px" }}>{venue.access.address}</p>
+              <p style={{ marginTop: "10px" }}>{renderInline(venue.access.routes)}</p>
+              <p className="small muted" style={{ marginTop: "10px" }}>
+                {venue.access.note}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
