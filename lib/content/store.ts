@@ -1,4 +1,5 @@
 import { LocalFsStore } from "@/lib/content/store-fs";
+import { GitHubStore, isRepoSlug } from "@/lib/content/store-github";
 
 /**
  * 管理画面から見た「保存先」の契約と、実装の選択。
@@ -99,7 +100,17 @@ export function getContentStore(): ContentStore | null {
   return null;
 }
 
-/** task_004 で GitHubStore に差し替える（今は未実装なので `server_misconfigured` に倒す）。 */
+/**
+ * GitHub 実装の組み立て（計画書 §7.10 の環境変数）。
+ *
+ * `GITHUB_CONTENT_REPO` は `owner/repo` 形式を検証してから URL に埋める（§7.1）。
+ * 変数が欠けているか形式が違えば `null` を返し、管理画面は 500 `server_misconfigured` になる。
+ * ブランチの既定は `main`。
+ */
 function getGitHubStore(): ContentStore | null {
-  return null;
+  const token = process.env.GITHUB_CONTENT_TOKEN;
+  const repo = process.env.GITHUB_CONTENT_REPO;
+  if (!token || !repo || !isRepoSlug(repo)) return null;
+
+  return new GitHubStore({ token, repo, branch: process.env.GITHUB_CONTENT_BRANCH || "main" });
 }
