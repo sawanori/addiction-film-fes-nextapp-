@@ -15453,39 +15453,41 @@
         "path": "6.0.2",
         "tag": "div",
         "attrs": {
-          "style": "margin-top:32px;display:flex;flex-wrap:wrap;gap:clamp(24px,3vw,48px);align-items:flex-start"
+          "class": "cols-2",
+          "style": "margin-top:32px"
         },
         "children": [
-          "figure",
+          "div",
           "div"
         ]
       },
       {
         "path": "6.0.2.0",
-        "tag": "figure",
+        "tag": "div",
         "attrs": {
-          "style": "margin:0;flex:0 1 448px"
+          "style": "position:relative;aspect-ratio:16 / 10"
         },
         "children": [
-          "img"
+          "iframe"
         ]
       },
       {
         "path": "6.0.2.0.0",
-        "tag": "img",
+        "tag": "iframe",
         "attrs": {
-          "alt": "有楽町よみうりホールの周辺地図。JR有楽町駅の中央西口と、東京メトロ有楽町線 有楽町駅のD4出口が最寄り",
+          "allowfullscreen": "",
           "loading": "lazy",
-          "src": "/assets/venue/access-map.png"
+          "referrerpolicy": "no-referrer-when-downgrade",
+          "src": "https://www.google.com/maps?q=%E6%9C%89%E6%A5%BD%E7%94%BA%E3%82%88%E3%81%BF%E3%81%86%E3%82%8A%E3%83%9B%E3%83%BC%E3%83%AB&z=17&output=embed",
+          "style": "position:absolute;inset:0;width:100%;height:100%;border:0",
+          "title": "有楽町よみうりホールの地図（Google マップ）"
         },
         "children": []
       },
       {
         "path": "6.0.2.1",
         "tag": "div",
-        "attrs": {
-          "style": "flex:1 1 280px;min-width:0"
-        },
+        "attrs": {},
         "children": [
           "h3",
           "p",

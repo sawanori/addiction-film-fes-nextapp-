@@ -150,9 +150,9 @@
     "access": {
       "h": "アクセス",
       "address": "〒100-0006　東京都千代田区有楽町1-11-1 読売会館 7階",
-      "img": {
-        "src": "/assets/venue/access-map.png",
-        "alt": "有楽町よみうりホールの周辺地図。JR有楽町駅の中央西口と、東京メトロ有楽町線 有楽町駅のD4出口が最寄り"
+      "map": {
+        "src": "https://www.google.com/maps?q=%E6%9C%89%E6%A5%BD%E7%94%BA%E3%82%88%E3%81%BF%E3%81%86%E3%82%8A%E3%83%9B%E3%83%BC%E3%83%AB&z=17&output=embed",
+        "title": "有楽町よみうりホールの地図（Google マップ）"
       },
       "routes": [
         "JR 有楽町駅〈中央西口〉",
