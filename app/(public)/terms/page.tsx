@@ -4,8 +4,6 @@ import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 import type { TermsBlock } from "@/lib/content/types";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
   const terms = await getDocument("terms");
   return {

@@ -4,8 +4,6 @@ import { styleVars } from "@/lib/style";
 import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
   const about = await getDocument("about");
   return {

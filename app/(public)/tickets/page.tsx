@@ -5,8 +5,6 @@ import { getDocument } from "@/lib/content/load";
 import { renderInline } from "@/lib/content/inline";
 import type { Box } from "@/lib/content/types";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
   const tickets = await getDocument("tickets");
   return {
