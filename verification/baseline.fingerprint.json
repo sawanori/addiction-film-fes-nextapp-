@@ -18108,7 +18108,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 191,
+    "elementCount": 192,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -18921,7 +18921,7 @@
         "path": "3.0.3.0",
         "tag": "a",
         "attrs": {
-          "class": "btn btn--red",
+          "class": "btn",
           "href": "https://docs.google.com/forms/d/e/1FAIpQLSfRIgMmveKmu9UtcMGGmQsgEhC8XNy0mxSzE0y1tTjhiG7XrQ/viewform",
           "rel": "noreferrer",
           "target": "_blank"
@@ -19055,7 +19055,6 @@
         },
         "children": [
           "div",
-          "div",
           "div"
         ]
       },
@@ -19113,18 +19112,18 @@
         "path": "4.0.1",
         "tag": "div",
         "attrs": {
-          "class": "cols-2"
+          "style": "display:flex;flex-wrap:wrap;gap:clamp(24px,3vw,48px);align-items:flex-start"
         },
         "children": [
           "figure",
-          "p"
+          "div"
         ]
       },
       {
         "path": "4.0.1.0",
         "tag": "figure",
         "attrs": {
-          "style": "margin:0;max-width:320px"
+          "style": "margin:0;flex:0 0 280px;max-width:100%"
         },
         "children": [
           "img"
@@ -19142,20 +19141,31 @@
       },
       {
         "path": "4.0.1.1",
+        "tag": "div",
+        "attrs": {
+          "style": "flex:1 1 420px;min-width:0"
+        },
+        "children": [
+          "p",
+          "div"
+        ]
+      },
+      {
+        "path": "4.0.1.1.0",
         "tag": "p",
         "attrs": {
-          "class": "lead"
+          "class": "lead",
+          "style": "margin:0 0 24px"
         },
         "children": [
           "#text:上映作品『Bill W. Conscious Contact』の日本語版書籍を、会場で販売します。"
         ]
       },
       {
-        "path": "4.0.2",
+        "path": "4.0.1.1.1",
         "tag": "div",
         "attrs": {
-          "class": "cols-3",
-          "style": "margin-top:32px"
+          "class": "cols-3"
         },
         "children": [
           "div",
@@ -19164,7 +19174,7 @@
         ]
       },
       {
-        "path": "4.0.2.0",
+        "path": "4.0.1.1.1.0",
         "tag": "div",
         "attrs": {
           "class": "box rise"
@@ -19175,7 +19185,7 @@
         ]
       },
       {
-        "path": "4.0.2.0.0",
+        "path": "4.0.1.1.1.0.0",
         "tag": "h3",
         "attrs": {},
         "children": [
@@ -19183,7 +19193,7 @@
         ]
       },
       {
-        "path": "4.0.2.0.1",
+        "path": "4.0.1.1.1.0.1",
         "tag": "p",
         "attrs": {},
         "children": [
@@ -19191,7 +19201,7 @@
         ]
       },
       {
-        "path": "4.0.2.1",
+        "path": "4.0.1.1.1.1",
         "tag": "div",
         "attrs": {
           "class": "box rise",
@@ -19203,7 +19213,7 @@
         ]
       },
       {
-        "path": "4.0.2.1.0",
+        "path": "4.0.1.1.1.1.0",
         "tag": "h3",
         "attrs": {},
         "children": [
@@ -19211,7 +19221,7 @@
         ]
       },
       {
-        "path": "4.0.2.1.1",
+        "path": "4.0.1.1.1.1.1",
         "tag": "p",
         "attrs": {},
         "children": [
@@ -19219,7 +19229,7 @@
         ]
       },
       {
-        "path": "4.0.2.2",
+        "path": "4.0.1.1.1.2",
         "tag": "div",
         "attrs": {
           "class": "box rise",
@@ -19231,7 +19241,7 @@
         ]
       },
       {
-        "path": "4.0.2.2.0",
+        "path": "4.0.1.1.1.2.0",
         "tag": "h3",
         "attrs": {},
         "children": [
@@ -19239,7 +19249,7 @@
         ]
       },
       {
-        "path": "4.0.2.2.1",
+        "path": "4.0.1.1.1.2.1",
         "tag": "p",
         "attrs": {},
         "children": [
