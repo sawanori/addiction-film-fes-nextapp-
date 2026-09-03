@@ -99,7 +99,13 @@ export default async function TicketsPage() {
               <p className="jp-head">{books.head.jp}</p>
             </div>
           </div>
-          <p className="lead">{books.lead}</p>
+          {/* 1080px 以下では .cols-2 が1列に落ちるので、書影の下に本文が回り込む */}
+          <div className="cols-2">
+            <figure style={{ margin: 0, maxWidth: "320px" }}>
+              <img src={books.img.src} alt={books.img.alt} loading="lazy" />
+            </figure>
+            <p className="lead">{books.lead}</p>
+          </div>
           <div className="cols-3" style={{ marginTop: "32px" }}>
             {books.boxes.map((box) => (
               <div

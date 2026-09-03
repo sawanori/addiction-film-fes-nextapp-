@@ -70,6 +70,10 @@
       "title": "Books",
       "jp": "会場販売"
     },
+    "img": {
+      "src": "/assets/book/book.jpg",
+      "alt": "『Bill W. Conscious Contact』日本語版の書影"
+    },
     "lead": "上映作品『Bill W. Conscious Contact』の日本語版書籍を、会場で販売します。",
     "boxes": [
       {
