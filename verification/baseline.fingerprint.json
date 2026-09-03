@@ -18108,7 +18108,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 188,
+    "elementCount": 191,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -19055,7 +19055,7 @@
         },
         "children": [
           "div",
-          "p",
+          "div",
           "div"
         ]
       },
@@ -19111,6 +19111,37 @@
       },
       {
         "path": "4.0.1",
+        "tag": "div",
+        "attrs": {
+          "class": "cols-2"
+        },
+        "children": [
+          "figure",
+          "p"
+        ]
+      },
+      {
+        "path": "4.0.1.0",
+        "tag": "figure",
+        "attrs": {
+          "style": "margin:0;max-width:320px"
+        },
+        "children": [
+          "img"
+        ]
+      },
+      {
+        "path": "4.0.1.0.0",
+        "tag": "img",
+        "attrs": {
+          "alt": "『Bill W. Conscious Contact』日本語版の書影",
+          "loading": "lazy",
+          "src": "/assets/book/book.jpg"
+        },
+        "children": []
+      },
+      {
+        "path": "4.0.1.1",
         "tag": "p",
         "attrs": {
           "class": "lead"

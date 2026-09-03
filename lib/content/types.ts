@@ -85,6 +85,8 @@ export type TicketsDocument = {
   /** 会場で売る書籍の案内。 */
   books: {
     head: SectionHead;
+    /** 書影。`.cols-2` の左半分に置く（右は `lead`）。 */
+    img: { src: string; alt: string };
     lead: string;
     boxes: Box[];
   };
