@@ -68,7 +68,10 @@ export default async function TicketsPage() {
           <p className="small muted" style={{ marginTop: "16px" }}>{price.note}</p>
 
           <div style={{ marginTop: "24px" }}>
-            <a className="btn btn--red" href={price.apply.href} target="_blank" rel="noreferrer">
+            {/* `btn--red`（--red-dp #8C5B60）は暗い面向けの色で、
+                ページの地色 --red #a37075 に載せるとコントラストが 1.44:1 しかない。
+                明るい面では既定の `.btn`（--ink #0A0A0A・5.15:1）を使う */}
+            <a className="btn" href={price.apply.href} target="_blank" rel="noreferrer">
               {price.apply.label}
             </a>
             <p className="small muted" style={{ marginTop: "14px" }}>{price.apply.note}</p>
@@ -99,24 +102,36 @@ export default async function TicketsPage() {
               <p className="jp-head">{books.head.jp}</p>
             </div>
           </div>
-          {/* 1080px 以下では .cols-2 が1列に落ちるので、書影の下に本文が回り込む */}
-          <div className="cols-2">
-            <figure style={{ margin: 0, maxWidth: "320px" }}>
+          {/* 書影を左に固定幅で置き、本文と3枚の箱を右の1列にまとめる。
+              `.cols-2`（左右50%ずつ）だと書影の右に列の余りが出て、PC幅で大きな空白になる。
+              幅が足りなくなれば flex が折り返して書影の下に回り込み、
+              1080px 以下では `.cols-3` 側も既存のメディアクエリで1列に落ちる */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "clamp(24px,3vw,48px)",
+              alignItems: "flex-start",
+            }}
+          >
+            <figure style={{ margin: 0, flex: "0 0 280px", maxWidth: "100%" }}>
               <img src={books.img.src} alt={books.img.alt} loading="lazy" />
             </figure>
-            <p className="lead">{books.lead}</p>
-          </div>
-          <div className="cols-3" style={{ marginTop: "32px" }}>
-            {books.boxes.map((box) => (
-              <div
-                key={box.h}
-                className="box rise"
-                {...(box.delay ? { style: boxStyle(box) } : {})}
-              >
-                <h3>{box.h}</h3>
-                <p>{renderInline(box.p)}</p>
+            <div style={{ flex: "1 1 420px", minWidth: 0 }}>
+              <p className="lead" style={{ margin: "0 0 24px" }}>{books.lead}</p>
+              <div className="cols-3">
+                {books.boxes.map((box) => (
+                  <div
+                    key={box.h}
+                    className="box rise"
+                    {...(box.delay ? { style: boxStyle(box) } : {})}
+                  >
+                    <h3>{box.h}</h3>
+                    <p>{renderInline(box.p)}</p>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
