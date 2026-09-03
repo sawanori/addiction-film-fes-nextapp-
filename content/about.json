@@ -5,7 +5,13 @@
   },
   "head": {
     "eyebrow": "About",
-    "title": ["Bias into", { "t": "br" }, "Dialogue"],
+    "title": [
+      "Bias into",
+      {
+        "t": "br"
+      },
+      "Dialogue"
+    ],
     "jp": "偏見を解きほぐす「追体験」の力",
     "lead": "依存症は、責めるべき個人の失敗としてではなく、誰の隣にもある出来事として語られるべきです。そのために選んだ手段が、説教ではなく映画でした。"
   },
@@ -54,18 +60,49 @@
       "jp": "開催基本方針"
     },
     "rows": [
-      { "label": "名称", "value": ["アディクション国際映画祭"] },
+      {
+        "label": "名称",
+        "value": [
+          "アディクション国際映画祭"
+        ]
+      },
       {
         "label": "会期",
         "value": [
           "2026年10月11日（日）・10月12日（月・祝）の2日間",
-          { "t": "span", "cls": "small muted", "c": ["（10月12日はスポーツの日）"] }
+          {
+            "t": "span",
+            "cls": "small muted",
+            "c": [
+              "（10月12日はスポーツの日）"
+            ]
+          }
         ]
       },
-      { "label": "会場", "value": ["よみうりホール（東京・有楽町）"] },
-      { "label": "ターゲット", "value": ["依存症にまだ関心のない「一般の映画ファン」をメインに設定"] },
-      { "label": "主催", "value": ["アディクション国際映画祭 実行委員会"] },
-      { "label": "料金", "value": ["1日券 3,000円／2日券 5,000円"] },
+      {
+        "label": "会場",
+        "value": [
+          "よみうりホール（東京・有楽町）"
+        ]
+      },
+      {
+        "label": "ターゲット",
+        "value": [
+          "依存症にまだ関心のない「一般の映画ファン」をメインに設定"
+        ]
+      },
+      {
+        "label": "主催",
+        "value": [
+          "アディクション国際映画祭 実行委員会"
+        ]
+      },
+      {
+        "label": "料金",
+        "value": [
+          "1日券 3,000円／2日券 5,000円"
+        ]
+      },
       {
         "label": "特徴",
         "value": [
@@ -81,7 +118,13 @@
             "cls": "small muted",
             "c": [
               "（映画ライター・編集者／",
-              { "t": "link", "href": "/#navigator", "c": ["プロフィール"] },
+              {
+                "t": "link",
+                "href": "/#navigator",
+                "c": [
+                  "プロフィール"
+                ]
+              },
               "）"
             ]
           }
@@ -116,41 +159,81 @@
   "partner": {
     "cta": {
       "text": "第1回を、ともに立ち上げてください。",
-      "link": { "label": "お問い合わせ", "href": "#contact" }
+      "link": {
+        "label": "お問い合わせ",
+        "href": "#contact"
+      }
     },
     "boxes": [
       {
         "h": "企業パートナー",
         "p": "会場内サイネージ、公式サイト、上映前スライドへのご掲出が可能です。依存症の啓発に取り組む企業・団体からのご協賛を歓迎します。",
-        "link": { "label": "資料請求", "href": "#contact" }
+        "link": {
+          "label": "資料請求",
+          "href": "#contact"
+        }
       },
       {
         "h": "メディアパートナー",
         "p": "取材、共同企画、チケット提供などで連携いただけるメディアを募集しています。当日はプレス席をご用意します。",
-        "link": { "label": "プレス情報", "href": "/news#press" },
+        "link": {
+          "label": "プレス情報",
+          "href": "/news#press"
+        },
         "delay": ".08s"
       },
       {
         "h": "支援団体・専門家",
         "p": "トークショーへのご登壇、当日の相談ブースの設置、表現の監修などでご協力いただける方を探しています。",
-        "link": { "label": "ご相談", "href": "#contact" },
+        "link": {
+          "label": "ご相談",
+          "href": "#contact"
+        },
         "delay": ".16s"
       }
     ]
   },
   "contact": {
     "eyebrow": "Contact",
-    "title": ["Get in", { "t": "br" }, "Touch"],
+    "title": [
+      "Get in",
+      {
+        "t": "br"
+      },
+      "Touch"
+    ],
     "rows": [
-      { "label": "映画祭全般", "value": ["info@example.jp〔仮〕"] },
-      { "label": "協賛・パートナー", "value": ["partner@example.jp〔仮〕"] },
-      { "label": "取材・プレス", "value": ["press@example.jp〔仮〕"] },
-      { "label": "登壇・監修のご相談", "value": ["talk@example.jp〔仮〕"] },
+      {
+        "label": "映画祭全般",
+        "value": [
+          "info@example.jp〔仮〕"
+        ]
+      },
+      {
+        "label": "協賛・パートナー",
+        "value": [
+          "partner@example.jp〔仮〕"
+        ]
+      },
+      {
+        "label": "取材・プレス",
+        "value": [
+          "press@example.jp〔仮〕"
+        ]
+      },
+      {
+        "label": "登壇・監修のご相談",
+        "value": [
+          "talk@example.jp〔仮〕"
+        ]
+      },
       {
         "label": "実行委員会",
         "value": [
           "アディクション国際映画祭 実行委員会〔仮称〕",
-          { "t": "br" },
+          {
+            "t": "br"
+          },
           "〔所在地・電話番号は調整中〕"
         ]
       }

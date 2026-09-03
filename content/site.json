@@ -8,14 +8,38 @@
       "jp": "アディクション国際映画祭〔企画中〕"
     },
     "nav": [
-      { "label": "About", "base": "/about", "hash": "" },
-      { "label": "Programme", "base": "/programme", "hash": "" },
-      { "label": "Tickets", "base": "/tickets", "hash": "" },
-      { "label": "News", "base": "/news", "hash": "" }
+      {
+        "label": "About",
+        "base": "/about",
+        "hash": ""
+      },
+      {
+        "label": "Programme",
+        "base": "/programme",
+        "hash": ""
+      },
+      {
+        "label": "Tickets",
+        "base": "/tickets",
+        "hash": ""
+      },
+      {
+        "label": "News",
+        "base": "/news",
+        "hash": ""
+      }
     ],
     "extra": [
-      { "label": "パートナー募集", "base": "/about", "hash": "#partner" },
-      { "label": "お問い合わせ", "base": "/about", "hash": "#contact" }
+      {
+        "label": "パートナー募集",
+        "base": "/about",
+        "hash": "#partner"
+      },
+      {
+        "label": "お問い合わせ",
+        "base": "/about",
+        "hash": "#contact"
+      }
     ],
     "toggleLabel": {
       "open": "メニューを開く",
@@ -28,9 +52,20 @@
     ],
     "utility": {
       "chip": "DRAFT／仮デザイン",
-      "press": { "label": "Press", "base": "/news", "hash": "" },
-      "contact": { "label": "Contact", "base": "/about", "hash": "#contact" },
-      "language": { "label": "JA", "href": "pathname" }
+      "press": {
+        "label": "Press",
+        "base": "/news",
+        "hash": ""
+      },
+      "contact": {
+        "label": "Contact",
+        "base": "/about",
+        "hash": "#contact"
+      },
+      "language": {
+        "label": "JA",
+        "href": "pathname"
+      }
     }
   },
   "footer": {
@@ -38,50 +73,122 @@
       {
         "heading": "Festival",
         "items": [
-          { "label": "上映とトーク", "base": "/programme", "hash": "" },
-          { "label": "会場", "base": "/programme", "hash": "#venue" },
-          { "label": "チケット", "base": "/tickets", "hash": "" }
+          {
+            "label": "上映とトーク",
+            "base": "/programme",
+            "hash": ""
+          },
+          {
+            "label": "会場",
+            "base": "/programme",
+            "hash": "#venue"
+          },
+          {
+            "label": "チケット",
+            "base": "/tickets",
+            "hash": ""
+          }
         ]
       },
       {
         "heading": "About",
         "items": [
-          { "label": "映画祭について", "base": "/about", "hash": "" },
-          { "label": "2つのアプローチ", "base": "/about", "hash": "#approach" },
-          { "label": "開催概要", "base": "/about", "hash": "#outline" },
-          { "label": "実行委員会", "base": "/about", "hash": "#org" }
+          {
+            "label": "映画祭について",
+            "base": "/about",
+            "hash": ""
+          },
+          {
+            "label": "2つのアプローチ",
+            "base": "/about",
+            "hash": "#approach"
+          },
+          {
+            "label": "開催概要",
+            "base": "/about",
+            "hash": "#outline"
+          },
+          {
+            "label": "実行委員会",
+            "base": "/about",
+            "hash": "#org"
+          }
         ]
       },
       {
         "heading": "Media",
         "items": [
-          { "label": "お知らせ", "base": "/news", "hash": "" },
-          { "label": "プレスリリース", "base": "/news", "hash": "" },
-          { "label": "取材のご依頼", "base": "/news", "hash": "#press" }
+          {
+            "label": "お知らせ",
+            "base": "/news",
+            "hash": ""
+          },
+          {
+            "label": "プレスリリース",
+            "base": "/news",
+            "hash": ""
+          },
+          {
+            "label": "取材のご依頼",
+            "base": "/news",
+            "hash": "#press"
+          }
         ]
       },
       {
         "heading": "Support",
         "items": [
-          { "label": "協賛", "base": "/about", "hash": "#partner" },
-          { "label": "メディアパートナー", "base": "/about", "hash": "#partner" },
-          { "label": "お問い合わせ", "base": "/about", "hash": "#contact" }
+          {
+            "label": "協賛",
+            "base": "/about",
+            "hash": "#partner"
+          },
+          {
+            "label": "メディアパートナー",
+            "base": "/about",
+            "hash": "#partner"
+          },
+          {
+            "label": "お問い合わせ",
+            "base": "/about",
+            "hash": "#contact"
+          }
         ]
       },
       {
         "heading": "Venue",
         "items": [
-          { "label": "よみうりホール" },
-          { "label": "東京・有楽町" },
-          { "label": "アクセス", "base": "/programme", "hash": "#venue" }
+          {
+            "label": "よみうりホール"
+          },
+          {
+            "label": "東京・有楽町"
+          },
+          {
+            "label": "アクセス",
+            "base": "/programme",
+            "hash": "#venue"
+          }
         ]
       }
     ],
     "note": "本サイトはデザイン検討用の試作です。企画書に記載のない情報（開催日・会場名・上映作品・登壇者・タイムテーブル・記事・連絡先など）はすべて仮置きであり、確定した事実ではありません。差し替え対象の一覧は PLACEHOLDERS.md を参照してください。",
     "legal": [
-      { "label": "プライバシーポリシー", "base": "/privacy", "hash": "" },
-      { "label": "利用規約・来場規約", "base": "/terms", "hash": "" },
-      { "label": "特定商取引法に基づく表記", "base": "/legal", "hash": "" }
+      {
+        "label": "プライバシーポリシー",
+        "base": "/privacy",
+        "hash": ""
+      },
+      {
+        "label": "利用規約・来場規約",
+        "base": "/terms",
+        "hash": ""
+      },
+      {
+        "label": "特定商取引法に基づく表記",
+        "base": "/legal",
+        "hash": ""
+      }
     ],
     "copy": "© 2026 アディクション国際映画祭 実行委員会〔仮称〕"
   }
