@@ -21,7 +21,7 @@ function boxStyle(box: Box, extra?: Record<string, string>) {
 
 export default async function TicketsPage() {
   const tickets = await getDocument("tickets");
-  const { head, price, faq } = tickets;
+  const { head, price, books, faq } = tickets;
 
   return (
     <>
@@ -67,8 +67,41 @@ export default async function TicketsPage() {
           </table>
           <p className="small muted" style={{ marginTop: "16px" }}>{price.note}</p>
 
+          <div style={{ marginTop: "24px" }}>
+            <a className="btn btn--red" href={price.apply.href} target="_blank" rel="noreferrer">
+              {price.apply.label}
+            </a>
+            <p className="small muted" style={{ marginTop: "14px" }}>{price.apply.note}</p>
+          </div>
+
           <div className="cols-3" style={{ marginTop: "32px" }}>
             {price.boxes.map((box) => (
+              <div
+                key={box.h}
+                className="box rise"
+                {...(box.delay ? { style: boxStyle(box) } : {})}
+              >
+                <h3>{box.h}</h3>
+                <p>{renderInline(box.p)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 会場販売の書籍 */}
+      <section className="section">
+        <div className="wrap">
+          <div className="section__head">
+            <div>
+              <span className="eyebrow">{books.head.eyebrow}</span>
+              <h2 className="display display--sm">{books.head.title}</h2>
+              <p className="jp-head">{books.head.jp}</p>
+            </div>
+          </div>
+          <p className="lead">{books.lead}</p>
+          <div className="cols-3" style={{ marginTop: "32px" }}>
+            {books.boxes.map((box) => (
               <div
                 key={box.h}
                 className="box rise"

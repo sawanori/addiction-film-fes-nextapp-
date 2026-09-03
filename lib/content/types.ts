@@ -74,6 +74,18 @@ export type TicketsDocument = {
     columns: [string, string, string, string];
     rows: TicketRow[];
     note: string;
+    /** 申し込みフォーム（外部URL）へのボタンと、その下の注意書き。 */
+    apply: {
+      label: string;
+      href: string;
+      note: string;
+    };
+    boxes: Box[];
+  };
+  /** 会場で売る書籍の案内。 */
+  books: {
+    head: SectionHead;
+    lead: string;
     boxes: Box[];
   };
   faq: {
