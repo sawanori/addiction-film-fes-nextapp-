@@ -2,7 +2,6 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifySessionCookie, type SessionPayload } from "@/lib/admin/auth";
-import { getDbClient } from "@/lib/db";
 
 /**
  * 管理認証の Data Access Layer（DAL）。
@@ -15,6 +14,9 @@ import { getDbClient } from "@/lib/db";
  * 止める手段も持たない。認証チェックはレイアウトではなく、データソースに
  * 近い場所（DAL）で行うべき」と明記している。そのため認証チェックは
  * 各ページ・各 API ハンドラの先頭でこの DAL の関数を呼ぶことで行う。
+ *
+ * `ver` は照合しない。全端末のログアウトは `ADMIN_SESSION_SECRET` の差し替えで行う
+ * （計画書 §7.5）。
  */
 export const getAdminSession = cache(async (): Promise<SessionPayload | null> => {
   const secret = process.env.ADMIN_SESSION_SECRET;
@@ -30,30 +32,6 @@ export const getAdminSession = cache(async (): Promise<SessionPayload | null> =>
 
   const payload = await verifySessionCookie(sessionCookie.value, secret);
   if (!payload) {
-    return null;
-  }
-
-  // session_version の DB 照合(fail-closed: DB未設定・行なし・例外はすべて null)
-  const client = getDbClient();
-  if (!client) {
-    return null;
-  }
-
-  let currentVersion: number;
-  try {
-    const { rows } = await client.execute({
-      sql: "SELECT session_version FROM admin_settings WHERE id = 1",
-      args: [],
-    });
-    if (rows.length === 0) {
-      return null;
-    }
-    currentVersion = Number(rows[0].session_version);
-  } catch {
-    return null;
-  }
-
-  if (payload.ver !== currentVersion) {
     return null;
   }
 
