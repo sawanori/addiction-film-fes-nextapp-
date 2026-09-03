@@ -682,6 +682,15 @@ export type ProgrammeDocument = {
     head: SectionHead;
     link: TextLink;
     boxes: ProgrammeVenueBox[];
+    /** 住所と周辺地図。地図は印刷物（B5チラシ）と同じ図版。 */
+    access: {
+      h: string;
+      address: string;
+      img: { src: string; alt: string };
+      /** 最寄り駅と出口。改行で区切る。 */
+      routes: Inline;
+      note: string;
+    };
   };
   cta: {
     t: string;
