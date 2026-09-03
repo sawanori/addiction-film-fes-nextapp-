@@ -40,22 +40,7 @@ else
     npm run build
   fi
   echo "本番サーバを起動: ${BASE_URL}"
-  # 公開ページは Turso から読む（lib/content/load.ts）。DB 接続情報が無いと同梱JSONへ
-  # フォールバックし、その経路では index の画像 preload（React が自動で出す resource hint。
-  # 変換元HTMLには無いタグ）が1本消えて baseline と1件差分になる。本番と同じ経路で
-  # 検証するため、.dev.vars があれば読み込んで起動する。
-  # 接続情報は wrangler 規約の .dev.vars か、Next/Vercel 規約の .env.local のどちらでもよい
-  ENV_FILE=""
-  for candidate in .dev.vars .env.local; do
-    if [ -f "$candidate" ]; then ENV_FILE="$candidate"; break; fi
-  done
-  if [ -n "$ENV_FILE" ]; then
-    echo "  ${ENV_FILE} を読み込んで起動します（DB 経由で検証）"
-    node --env-file="$ENV_FILE" node_modules/next/dist/bin/next start -p "$PORT" > /tmp/verify-text-server.log 2>&1 &
-  else
-    echo "  .dev.vars / .env.local が無いため同梱JSONへのフォールバック経路で検証します"
-    npx next start -p "$PORT" > /tmp/verify-text-server.log 2>&1 &
-  fi
+  npx next start -p "$PORT" > /tmp/verify-text-server.log 2>&1 &
   SERVER_PID=$!
 fi
 

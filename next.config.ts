@@ -1,15 +1,6 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  // Cloudflare 向けの回避策。Turso クライアント(@libsql/client/http 経由)を workerd 向けに
-  // バンドルする際、esbuild が @libsql/isomorphic-ws の workerd 条件(web.mjs)を解決できず
-  // `Could not resolve "@libsql/isomorphic-ws"` で opennextjs-cloudflare build が
-  // 失敗する。standalone 出力に同ファイルを明示的に含めることで解決する(実測済み)。
-  // Vercel では不要だが、含めても数KBのファイルがトレースに増えるだけで害はない。
-  outputFileTracingIncludes: {
-    "**": ["./node_modules/@libsql/isomorphic-ws/web.mjs"],
-  },
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
 
