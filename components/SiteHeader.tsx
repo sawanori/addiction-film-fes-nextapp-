@@ -117,7 +117,12 @@ export default function SiteHeader({ content }: { content: SiteHeaderContent }) 
             ))}
           </div>
           <div className="utility">
-            <span className="chip">{content.utility.chip}</span>
+            {/* `.chip` は枠線と padding を持つので、空文字のときは要素ごと出さない
+                （出すと中身のない楕円が残る）。値は site の項目として残してあるので、
+                管理画面から文字を入れ直せば再び表示される */}
+            {content.utility.chip ? (
+              <span className="chip">{content.utility.chip}</span>
+            ) : null}
             <SmartLink href={hrefFor(pathname, content.utility.press)}>
               {content.utility.press.label}
             </SmartLink>

@@ -20,7 +20,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 245,
+    "elementCount": 244,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -34,7 +34,6 @@
       "MAIN PARTNER 募集中",
       "OFFICIAL SUPPORTER 募集中",
       "MEDIA PARTNER 募集中",
-      "DRAFT／仮デザイン",
       "Press",
       "Contact",
       "JA",
@@ -480,7 +479,6 @@
           "class": "utility"
         },
         "children": [
-          "span",
           "a",
           "a",
           "a"
@@ -488,16 +486,6 @@
       },
       {
         "path": "1.0.1.1.0",
-        "tag": "span",
-        "attrs": {
-          "class": "chip"
-        },
-        "children": [
-          "#text:DRAFT／仮デザイン"
-        ]
-      },
-      {
-        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/news"
@@ -507,7 +495,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.2",
+        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "#contact"
@@ -517,7 +505,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.3",
+        "path": "1.0.1.1.2",
         "tag": "a",
         "attrs": {
           "href": "/about"
@@ -2554,7 +2542,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 380,
+    "elementCount": 379,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -2568,7 +2556,6 @@
       "MAIN PARTNER 募集中",
       "OFFICIAL SUPPORTER 募集中",
       "MEDIA PARTNER 募集中",
-      "DRAFT／仮デザイン",
       "Press",
       "Contact",
       "JA",
@@ -3097,7 +3084,6 @@
           "class": "utility"
         },
         "children": [
-          "span",
           "a",
           "a",
           "a"
@@ -3105,16 +3091,6 @@
       },
       {
         "path": "1.0.1.1.0",
-        "tag": "span",
-        "attrs": {
-          "class": "chip"
-        },
-        "children": [
-          "#text:DRAFT／仮デザイン"
-        ]
-      },
-      {
-        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/news"
@@ -3124,7 +3100,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.2",
+        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/about#contact"
@@ -3134,7 +3110,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.3",
+        "path": "1.0.1.1.2",
         "tag": "a",
         "attrs": {
           "href": "/"
@@ -6659,7 +6635,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 172,
+    "elementCount": 171,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -6673,7 +6649,6 @@
       "MAIN PARTNER 募集中",
       "OFFICIAL SUPPORTER 募集中",
       "MEDIA PARTNER 募集中",
-      "DRAFT／仮デザイン",
       "Press",
       "Contact",
       "JA",
@@ -7083,7 +7058,6 @@
           "class": "utility"
         },
         "children": [
-          "span",
           "a",
           "a",
           "a"
@@ -7091,16 +7065,6 @@
       },
       {
         "path": "1.0.1.1.0",
-        "tag": "span",
-        "attrs": {
-          "class": "chip"
-        },
-        "children": [
-          "#text:DRAFT／仮デザイン"
-        ]
-      },
-      {
-        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/news"
@@ -7110,7 +7074,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.2",
+        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/about#contact"
@@ -7120,7 +7084,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.3",
+        "path": "1.0.1.1.2",
         "tag": "a",
         "attrs": {
           "href": "/legal"
@@ -8389,7 +8353,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 193,
+    "elementCount": 192,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -8403,7 +8367,6 @@
       "MAIN PARTNER 募集中",
       "OFFICIAL SUPPORTER 募集中",
       "MEDIA PARTNER 募集中",
-      "DRAFT／仮デザイン",
       "Press",
       "Contact",
       "JA",
@@ -8820,7 +8783,6 @@
           "class": "utility"
         },
         "children": [
-          "span",
           "a",
           "a",
           "a"
@@ -8828,16 +8790,6 @@
       },
       {
         "path": "1.0.1.1.0",
-        "tag": "span",
-        "attrs": {
-          "class": "chip"
-        },
-        "children": [
-          "#text:DRAFT／仮デザイン"
-        ]
-      },
-      {
-        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/news"
@@ -8847,7 +8799,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.2",
+        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/about#contact"
@@ -8857,7 +8809,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.3",
+        "path": "1.0.1.1.2",
         "tag": "a",
         "attrs": {
           "href": "/news"
@@ -10440,7 +10392,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 194,
+    "elementCount": 193,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -10454,7 +10406,6 @@
       "MAIN PARTNER 募集中",
       "OFFICIAL SUPPORTER 募集中",
       "MEDIA PARTNER 募集中",
-      "DRAFT／仮デザイン",
       "Press",
       "Contact",
       "JA",
@@ -10888,7 +10839,6 @@
           "class": "utility"
         },
         "children": [
-          "span",
           "a",
           "a",
           "a"
@@ -10896,16 +10846,6 @@
       },
       {
         "path": "1.0.1.1.0",
-        "tag": "span",
-        "attrs": {
-          "class": "chip"
-        },
-        "children": [
-          "#text:DRAFT／仮デザイン"
-        ]
-      },
-      {
-        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/news"
@@ -10915,7 +10855,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.2",
+        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/about#contact"
@@ -10925,7 +10865,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.3",
+        "path": "1.0.1.1.2",
         "tag": "a",
         "attrs": {
           "href": "/privacy"
@@ -12431,7 +12371,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 365,
+    "elementCount": 364,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -12445,7 +12385,6 @@
       "MAIN PARTNER 募集中",
       "OFFICIAL SUPPORTER 募集中",
       "MEDIA PARTNER 募集中",
-      "DRAFT／仮デザイン",
       "Press",
       "Contact",
       "JA",
@@ -12966,7 +12905,6 @@
           "class": "utility"
         },
         "children": [
-          "span",
           "a",
           "a",
           "a"
@@ -12974,16 +12912,6 @@
       },
       {
         "path": "1.0.1.1.0",
-        "tag": "span",
-        "attrs": {
-          "class": "chip"
-        },
-        "children": [
-          "#text:DRAFT／仮デザイン"
-        ]
-      },
-      {
-        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/news"
@@ -12993,7 +12921,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.2",
+        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/about#contact"
@@ -13003,7 +12931,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.3",
+        "path": "1.0.1.1.2",
         "tag": "a",
         "attrs": {
           "href": "/programme"
@@ -16240,7 +16168,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 182,
+    "elementCount": 181,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -16254,7 +16182,6 @@
       "MAIN PARTNER 募集中",
       "OFFICIAL SUPPORTER 募集中",
       "MEDIA PARTNER 募集中",
-      "DRAFT／仮デザイン",
       "Press",
       "Contact",
       "JA",
@@ -16686,7 +16613,6 @@
           "class": "utility"
         },
         "children": [
-          "span",
           "a",
           "a",
           "a"
@@ -16694,16 +16620,6 @@
       },
       {
         "path": "1.0.1.1.0",
-        "tag": "span",
-        "attrs": {
-          "class": "chip"
-        },
-        "children": [
-          "#text:DRAFT／仮デザイン"
-        ]
-      },
-      {
-        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/news"
@@ -16713,7 +16629,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.2",
+        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/about#contact"
@@ -16723,7 +16639,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.3",
+        "path": "1.0.1.1.2",
         "tag": "a",
         "attrs": {
           "href": "/terms"
@@ -18099,7 +18015,7 @@
       ]
     },
     "commentCount": 4,
-    "elementCount": 192,
+    "elementCount": 191,
     "text": [
       "Addiction Int'l Film Festival",
       "2026.10.11 — 10.12",
@@ -18113,7 +18029,6 @@
       "MAIN PARTNER 募集中",
       "OFFICIAL SUPPORTER 募集中",
       "MEDIA PARTNER 募集中",
-      "DRAFT／仮デザイン",
       "Press",
       "Contact",
       "JA",
@@ -18530,7 +18445,6 @@
           "class": "utility"
         },
         "children": [
-          "span",
           "a",
           "a",
           "a"
@@ -18538,16 +18452,6 @@
       },
       {
         "path": "1.0.1.1.0",
-        "tag": "span",
-        "attrs": {
-          "class": "chip"
-        },
-        "children": [
-          "#text:DRAFT／仮デザイン"
-        ]
-      },
-      {
-        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/news"
@@ -18557,7 +18461,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.2",
+        "path": "1.0.1.1.1",
         "tag": "a",
         "attrs": {
           "href": "/about#contact"
@@ -18567,7 +18471,7 @@
         ]
       },
       {
-        "path": "1.0.1.1.3",
+        "path": "1.0.1.1.2",
         "tag": "a",
         "attrs": {
           "href": "/tickets"
