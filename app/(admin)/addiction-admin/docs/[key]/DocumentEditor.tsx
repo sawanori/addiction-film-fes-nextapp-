@@ -333,44 +333,48 @@ export default function DocumentEditor({
           </div>
         </div>
 
-        <h2 className="adm__h2">変更の履歴</h2>
-        <table className="adm__table">
-          <thead>
-            <tr>
-              <th style={{ width: "4.5rem" }}>版</th>
-              <th style={{ width: "11rem" }}>日時</th>
-              <th>メモ</th>
-              <th style={{ width: "9rem" }}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.map((entry, index) => (
-              <tr key={entry.commit}>
-                <td title={entry.commit}>{entry.commit.slice(0, 7)}</td>
-                <td>{formatDateTime(entry.createdAt)}</td>
-                <td>{entry.note ?? "—"}</td>
-                <td>
-                  {index === 0 ? (
-                    <span className="adm__badge-now">いまの内容</span>
-                  ) : (
-                    <button type="button" className="adm__mini" onClick={() => revert(entry.commit)} disabled={busy}>
-                      この版に戻す
-                    </button>
-                  )}
-                </td>
+        <details className="adm__history">
+          <summary>
+            <h2 className="adm__h2">変更の履歴（{history.length}件）</h2>
+          </summary>
+          <table className="adm__table">
+            <thead>
+              <tr>
+                <th style={{ width: "4.5rem" }}>版</th>
+                <th style={{ width: "11rem" }}>日時</th>
+                <th>メモ</th>
+                <th style={{ width: "9rem" }}>操作</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {historyUrl ? (
-          <p className="adm__note">
-            20件より前の履歴は{" "}
-            <a href={historyUrl} target="_blank" rel="noreferrer">
-              GitHub で見られます
-            </a>
-            。
-          </p>
-        ) : null}
+            </thead>
+            <tbody>
+              {history.map((entry, index) => (
+                <tr key={entry.commit}>
+                  <td title={entry.commit}>{entry.commit.slice(0, 7)}</td>
+                  <td>{formatDateTime(entry.createdAt)}</td>
+                  <td>{entry.note ?? "—"}</td>
+                  <td>
+                    {index === 0 ? (
+                      <span className="adm__badge-now">いまの内容</span>
+                    ) : (
+                      <button type="button" className="adm__mini" onClick={() => revert(entry.commit)} disabled={busy}>
+                        この版に戻す
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {historyUrl ? (
+            <p className="adm__note">
+              20件より前の履歴は{" "}
+              <a href={historyUrl} target="_blank" rel="noreferrer">
+                GitHub で見られます
+              </a>
+              。
+            </p>
+          ) : null}
+        </details>
       </main>
     </>
   );

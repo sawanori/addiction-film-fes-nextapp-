@@ -24,7 +24,8 @@ npm run deploy:cf  # Cloudflare Workers へデプロイ（Vercel は git push �
 
 **掲載内容の保存先は GitHub リポジトリ自身**（`content/<key>.json`）。管理画面で保存すると
 1コミットができ、それを Vercel が拾って本番デプロイし、**1〜2分ほどで公開に反映される**
-（この数値は暫定で、task_012 の実測後に確定する）。何も変えずに保存してもコミットは増えない。
+（2026-09-03 に検証用 Vercel で実測: 保存リクエストから公開反映まで 31秒〜102秒。差はビルドの
+キュー待ちで、ビルド自体は約20秒）。何も変えずに保存してもコミットは増えない。
 
 **Cloudflare Workers（従）** — `npm run deploy:cf`。移行期間中の並行運用として残してある。
 `wrangler.jsonc` / `open-next.config.ts` / `next.config.ts` 末尾の

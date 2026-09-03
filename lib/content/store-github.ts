@@ -80,9 +80,23 @@ function sanitizeNote(note: string | null): string {
   return note.replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "").slice(0, NOTE_MAX_LENGTH);
 }
 
-/** コミットメッセージの「最初の空行より後」。無ければ null（§7.7）。 */
+/** 管理画面からの保存・復元コミットか（§7.7 の1行目の形式）。 */
+const ADMIN_COMMIT_HEAD_PATTERN = /^content\([a-z]+\): /;
+
+/**
+ * コミットメッセージの「最初の空行より後」。無ければ null（§7.7）。
+ *
+ * ただし本文を返すのは、1行目が `content(<key>): ` で始まる、つまり管理画面からの
+ * 保存・復元コミット（§7.7 の形式）のときだけ。開発者が git で直接入れたコミットは
+ * 本文が数百文字になることがあり、それをそのまま履歴表の「メモ」欄に出すと表が
+ * 読めなくなるため、その場合は常に null を返す。
+ */
 function extractNote(message: string): string | null {
   const normalized = message.replace(/\r\n/g, "\n");
+  const firstLineEnd = normalized.indexOf("\n");
+  const firstLine = firstLineEnd === -1 ? normalized : normalized.slice(0, firstLineEnd);
+  if (!ADMIN_COMMIT_HEAD_PATTERN.test(firstLine)) return null;
+
   const separator = normalized.indexOf("\n\n");
   if (separator === -1) return null;
   const body = normalized.slice(separator + 2).replace(/\n+$/, "");
