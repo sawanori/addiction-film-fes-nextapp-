@@ -136,25 +136,26 @@ export default async function ProgrammePage() {
             ))}
           </div>
 
-          {/* 住所と周辺地図。地図は印刷物と同じ図版で、原寸が 448px なので
-              引き伸ばさないよう flex-basis をその幅に合わせている */}
-          <div
-            style={{
-              marginTop: "32px",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "clamp(24px,3vw,48px)",
-              alignItems: "flex-start",
-            }}
-          >
-            <figure style={{ margin: 0, flex: "0 1 448px" }}>
-              <img
-                src={venue.access.img.src}
-                alt={venue.access.img.alt}
+          {/* 住所と周辺地図。地図は Google マップの埋め込みで、1080px 以下では
+              `.cols-2` が1列に落ちて地図の下に住所が回り込む */}
+          <div className="cols-2" style={{ marginTop: "32px" }}>
+            <div style={{ position: "relative", aspectRatio: "16 / 10" }}>
+              <iframe
+                src={venue.access.map.src}
+                title={venue.access.map.title}
                 loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  border: 0,
+                }}
               />
-            </figure>
-            <div style={{ flex: "1 1 280px", minWidth: 0 }}>
+            </div>
+            <div>
               <h3>{venue.access.h}</h3>
               <p style={{ marginTop: "10px" }}>{venue.access.address}</p>
               <p style={{ marginTop: "10px" }}>{renderInline(venue.access.routes)}</p>

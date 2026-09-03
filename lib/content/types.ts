@@ -682,11 +682,11 @@ export type ProgrammeDocument = {
     head: SectionHead;
     link: TextLink;
     boxes: ProgrammeVenueBox[];
-    /** 住所と周辺地図。地図は印刷物（B5チラシ）と同じ図版。 */
+    /** 住所と周辺地図。地図は Google マップの埋め込み（API キーの要らない `output=embed` 形式）。 */
     access: {
       h: string;
       address: string;
-      img: { src: string; alt: string };
+      map: { src: string; title: string };
       /** 最寄り駅と出口。改行で区切る。 */
       routes: Inline;
       note: string;
