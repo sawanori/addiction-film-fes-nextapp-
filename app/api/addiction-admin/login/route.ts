@@ -5,7 +5,6 @@ import {
   generateSessionCookie,
 } from "@/lib/admin/auth";
 import { getClientIp, checkRateLimit, recordLoginFailure, clearLoginAttempts } from "@/lib/admin/rate-limit";
-import { getDbClient } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   const cacheControlHeader = { "Cache-Control": "no-store" };
@@ -110,28 +109,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 7. session_version の読み出し
-  const client = getDbClient();
-  if (!client) {
-    return NextResponse.json(
-      { error: "server_misconfigured" },
-      { status: 500, headers: cacheControlHeader }
-    );
-  }
-
-  const { rows } = await client.execute({
-    sql: "SELECT session_version FROM admin_settings WHERE id = 1",
-    args: [],
-  });
-
-  const sessionVersion = rows.length > 0 ? Number(rows[0].session_version) : 1;
-
-  // 8. Cookie発行
-  const sessionCookie = await generateSessionCookie(
-    sessionVersion,
-    43200,
-    adminSessionSecret
-  );
+  // 7. Cookie発行
+  // セッション版はコード上の定数 1。DB を撤去したので `admin_settings.session_version`
+  // は読まない（計画書 §7.5。全端末のログアウトが要るときは ADMIN_SESSION_SECRET を替える）。
+  const sessionCookie = await generateSessionCookie(1, 43200, adminSessionSecret);
 
   const cookieStore = await cookies();
   cookieStore.set("aff_admin", sessionCookie, {
@@ -142,9 +123,9 @@ export async function POST(request: NextRequest) {
     secure: process.env.NODE_ENV === "production",
   });
 
-  // 9. クリーンアップ
+  // 8. クリーンアップ
   await clearLoginAttempts(ip);
 
-  // 10. 成功レスポンス
+  // 9. 成功レスポンス
   return NextResponse.json({ ok: true }, { headers: cacheControlHeader });
 }

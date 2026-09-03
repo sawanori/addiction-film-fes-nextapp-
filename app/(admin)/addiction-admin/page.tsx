@@ -41,8 +41,8 @@ const ORDER = [
   "legal",
 ];
 
-function formatDateTime(iso: string): string {
-  return iso.replace("T", " ").slice(0, 16);
+function formatDateTime(iso: string | null): string {
+  return iso === null ? "—" : iso.replace("T", " ").slice(0, 16);
 }
 
 export default async function AdminDashboardPage() {
@@ -50,8 +50,10 @@ export default async function AdminDashboardPage() {
   await requireAdminSession("/addiction-admin");
 
   const documents = await listDocuments();
+  // "store_error"（保存先に届かない）と "misconfigured"（環境変数が足りない）はどちらも同じ表示。
+  const failed = typeof documents === "string";
   const sorted =
-    documents === "db_error"
+    failed
       ? []
       : [...documents].sort((a, b) => {
           const ai = ORDER.indexOf(a.key);
@@ -78,12 +80,12 @@ export default async function AdminDashboardPage() {
         <p className="adm__note">
           直したいページを選んで「編集する」を押してください。
           <br />
-          保存すると公開サイトにすぐ反映されます。保存のたびに履歴が残るので、間違えても前の内容に戻せます。
+          保存すると、1〜2分ほどで公開サイトに反映されます。保存のたびに履歴が残るので、間違えても前の内容に戻せます。
         </p>
 
-        {documents === "db_error" ? (
+        {failed ? (
           <p className="adm__error">
-            データベースに接続できませんでした。時間をおいて再読み込みしてください。
+            保存先（GitHub）に接続できませんでした。時間をおいて再読み込みしてください。
           </p>
         ) : (
           <ul className="adm__cards">
@@ -91,9 +93,7 @@ export default async function AdminDashboardPage() {
               <li className="adm__card" key={doc.key}>
                 <h2 className="adm__card-title">{documentLabel(doc.key)}</h2>
                 <p className="adm__card-desc">{documentDescription(doc.key)}</p>
-                <div className="adm__card-meta">
-                  最終更新 {formatDateTime(doc.updatedAt)}　/　版 {doc.revision}
-                </div>
+                <div className="adm__card-meta">最終更新 {formatDateTime(doc.updatedAt)}</div>
                 <div className="adm__card-actions">
                   <Link className="adm__button" href={`/addiction-admin/docs/${doc.key}`}>
                     編集する

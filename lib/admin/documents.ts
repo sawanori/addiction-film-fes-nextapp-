@@ -1,151 +1,72 @@
-import { getDbClient } from "@/lib/db";
+import {
+  getContentStore,
+  type HistoryEntry,
+  type StoredDocument,
+  type WriteOutcome,
+} from "@/lib/content/store";
 
 /**
  * 管理APIから見たドキュメントの読み書き。
  *
- * 書き込みは**楽観ロック**（`WHERE key = ? AND revision = ?`）で、更新とリビジョン記録を
- * `client.batch(..., "write")` の1トランザクションで行う。リビジョン記録側は
- * 「更新後の revision を持つ行」を SELECT して INSERT するので、UPDATE が0行だった場合は
- * 何も挿入されない（＝競合時に履歴だけ増える事故が起きない）。
+ * 実体は `lib/content/store.ts` の `ContentStore`（GitHub 実装 / ローカル FS 実装）で、
+ * ここはその薄い入口。**管理画面の読み書きはすべてこの5関数を通す**。
+ *
+ * 書き込みは**楽観ロック**で、鍵は「ファイルの blob sha の一致」。呼び出し側が持っている
+ * `baseSha` が保存先の現在の blob sha と違えば `conflict` を返し、何も書かない
+ * （計画書 `docs/plans/git-backed-cms/implementation-plan.md` §7.2）。
+ *
+ * 保存先が決まらない（環境変数が足りない）場合は `"misconfigured"` を返す。API はこれを
+ * 500 `server_misconfigured`、`"store_error"` / `reason:"store"` を 503 `store_unavailable`
+ * に対応させる（§9）。
  */
 
-export type StoredDocument = {
-  key: string;
-  data: unknown;
-  revision: number;
-  updatedAt: string;
-};
+/** 保存先が決まらないときの `"misconfigured"` を足した読み出し結果。 */
+export type ReadResult = StoredDocument | null | "store_error" | "misconfigured";
 
-export type WriteOutcome =
-  | { ok: true; revision: number }
-  | { ok: false; reason: "conflict" | "not_found" | "db" };
-
-export async function readDocument(key: string): Promise<StoredDocument | null | "db_error"> {
-  const client = getDbClient();
-  if (!client) return "db_error";
-
-  try {
-    const { rows } = await client.execute({
-      sql: "SELECT key, data, revision, updated_at FROM content_documents WHERE key = ?",
-      args: [key],
-    });
-    if (rows.length === 0) return null;
-
-    const row = rows[0];
-    return {
-      key: String(row.key),
-      data: JSON.parse(String(row.data)),
-      revision: Number(row.revision),
-      updatedAt: String(row.updated_at),
-    };
-  } catch {
-    return "db_error";
-  }
+/** 現在の内容と blob sha。保存先が読めなければ `"store_error"`、キーが無ければ `null`。 */
+export async function readDocument(key: string): Promise<ReadResult> {
+  const store = getContentStore();
+  if (store === null) return "misconfigured";
+  return store.read(key);
 }
 
-export async function readRevision(
-  key: string,
-  revision: number
-): Promise<{ data: unknown; note: string | null; createdAt: string } | null | "db_error"> {
-  const client = getDbClient();
-  if (!client) return "db_error";
-
-  try {
-    const { rows } = await client.execute({
-      sql: "SELECT data, note, created_at FROM content_revisions WHERE doc_key = ? AND revision = ?",
-      args: [key, revision],
-    });
-    if (rows.length === 0) return null;
-    return {
-      data: JSON.parse(String(rows[0].data)),
-      note: rows[0].note === null ? null : String(rows[0].note),
-      createdAt: String(rows[0].created_at),
-    };
-  } catch {
-    return "db_error";
-  }
-}
-
-export async function listRevisions(
-  key: string
-): Promise<Array<{ revision: number; note: string | null; createdAt: string }> | "db_error"> {
-  const client = getDbClient();
-  if (!client) return "db_error";
-
-  try {
-    const { rows } = await client.execute({
-      sql: "SELECT revision, note, created_at FROM content_revisions WHERE doc_key = ? ORDER BY revision DESC",
-      args: [key],
-    });
-    return rows.map((row) => ({
-      revision: Number(row.revision),
-      note: row.note === null ? null : String(row.note),
-      createdAt: String(row.created_at),
-    }));
-  } catch {
-    return "db_error";
-  }
-}
-
-/** 楽観ロック付きの書き込み。成功したら新しい revision を返す。 */
+/** 楽観ロック付きの書き込み。`baseSha` が現在の blob sha と一致したときだけ保存する。 */
 export async function writeDocument(
   key: string,
-  baseRevision: number,
+  baseSha: string,
   data: unknown,
   note: string | null
-): Promise<WriteOutcome> {
-  const client = getDbClient();
-  if (!client) return { ok: false, reason: "db" };
-
-  const nextRevision = baseRevision + 1;
-  const serialized = JSON.stringify(data);
-
-  try {
-    const results = await client.batch(
-      [
-        {
-          sql: `UPDATE content_documents
-                SET data = ?, revision = revision + 1,
-                    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-                WHERE key = ? AND revision = ?`,
-          args: [serialized, key, baseRevision],
-        },
-        {
-          sql: `INSERT INTO content_revisions (doc_key, revision, data, note)
-                SELECT key, revision, data, ?
-                FROM content_documents
-                WHERE key = ? AND revision = ?`,
-          args: [note, key, nextRevision],
-        },
-      ],
-      "write"
-    );
-
-    const updated = Number(results[0]?.rowsAffected ?? 0);
-    if (updated === 0) return { ok: false, reason: "conflict" };
-    return { ok: true, revision: nextRevision };
-  } catch {
-    return { ok: false, reason: "db" };
-  }
+): Promise<WriteOutcome | "misconfigured"> {
+  const store = getContentStore();
+  if (store === null) return "misconfigured";
+  return store.write(key, baseSha, data, note);
 }
 
-/** ダッシュボード用の一覧。 */
+/** ダッシュボード用の一覧。`updatedAt` はそのファイルの最終コミット日時（無ければ null）。 */
 export async function listDocuments(): Promise<
-  Array<{ key: string; revision: number; updatedAt: string }> | "db_error"
+  Array<{ key: string; updatedAt: string | null }> | "store_error" | "misconfigured"
 > {
-  const client = getDbClient();
-  if (!client) return "db_error";
+  const store = getContentStore();
+  if (store === null) return "misconfigured";
+  return store.list();
+}
 
-  try {
-    const { rows } = await client.execute(
-      "SELECT key, revision, updated_at FROM content_documents ORDER BY key"
-    );
-    return rows.map((row) => ({
-      key: String(row.key),
-      revision: Number(row.revision),
-      updatedAt: String(row.updated_at),
-    }));
-  } catch {
-    return "db_error";
-  }
+/** 変更履歴（新しい順）。ローカル FS 実装では常に空配列。 */
+export async function listHistory(
+  key: string,
+  limit = 20
+): Promise<HistoryEntry[] | "store_error" | "misconfigured"> {
+  const store = getContentStore();
+  if (store === null) return "misconfigured";
+  return store.history(key, limit);
+}
+
+/** 指定コミット時点の内容。無ければ `null`（ローカル FS 実装では常に `null`）。 */
+export async function readAt(
+  key: string,
+  commit: string
+): Promise<{ data: unknown } | null | "store_error" | "misconfigured"> {
+  const store = getContentStore();
+  if (store === null) return "misconfigured";
+  return store.readAt(key, commit);
 }

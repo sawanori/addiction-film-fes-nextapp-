@@ -1,6 +1,6 @@
 import { requireAdminApi } from "@/lib/admin/session";
 import { jsonError, jsonOk } from "@/lib/admin/request";
-import { getDbClient } from "@/lib/db";
+import { listDocuments } from "@/lib/admin/documents";
 import { documentLabel } from "@/lib/content/manifest";
 
 export const dynamic = "force-dynamic";
@@ -10,22 +10,15 @@ export async function GET() {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.response;
 
-  const client = getDbClient();
-  if (!client) return jsonError("server_misconfigured", 500);
+  const documents = await listDocuments();
+  if (documents === "misconfigured") return jsonError("server_misconfigured", 500);
+  if (documents === "store_error") return jsonError("store_unavailable", 503);
 
-  try {
-    const { rows } = await client.execute(
-      "SELECT key, revision, updated_at FROM content_documents ORDER BY key"
-    );
-    return jsonOk({
-      documents: rows.map((row) => ({
-        key: String(row.key),
-        label: documentLabel(String(row.key)),
-        revision: Number(row.revision),
-        updatedAt: String(row.updated_at),
-      })),
-    });
-  } catch {
-    return jsonError("db_unavailable", 503);
-  }
+  return jsonOk({
+    documents: documents.map((doc) => ({
+      key: doc.key,
+      label: documentLabel(doc.key),
+      updatedAt: doc.updatedAt,
+    })),
+  });
 }

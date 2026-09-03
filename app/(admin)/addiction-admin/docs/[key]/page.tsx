@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireAdminSession } from "@/lib/admin/session";
-import { readDocument, listRevisions } from "@/lib/admin/documents";
+import { readDocument, listHistory } from "@/lib/admin/documents";
+import { isRepoSlug } from "@/lib/content/store-github";
 import {
   buildManifest,
   documentLabel,
@@ -31,6 +32,17 @@ const PUBLIC_PATH: Record<string, string | null> = {
   site: null,
 };
 
+/**
+ * 履歴表の下に出す「GitHub で見る」のリンク先（計画書 §8.3）。
+ * `GITHUB_CONTENT_REPO` が無い／`owner/repo` 形式でない（ローカルの FS 実装など）なら null。
+ */
+function historyUrlFor(key: string): string | null {
+  const repo = process.env.GITHUB_CONTENT_REPO;
+  if (!repo || !isRepoSlug(repo)) return null;
+  const branch = process.env.GITHUB_CONTENT_BRANCH || "main";
+  return `https://github.com/${repo}/commits/${branch}/content/${key}.json`;
+}
+
 export default async function AdminDocumentPage({
   params,
 }: {
@@ -44,16 +56,19 @@ export default async function AdminDocumentPage({
   if (!(DOCUMENT_KEYS as string[]).includes(key)) notFound();
 
   const stored = await readDocument(key);
-  if (stored === "db_error") {
+  // "store_error"（保存先に届かない）と "misconfigured"（環境変数が足りない）はどちらも同じ表示。
+  if (typeof stored === "string") {
     return (
       <main className="adm__page">
-        <p className="adm__error">データベースに接続できませんでした。</p>
+        <p className="adm__error">
+          保存先（GitHub）に接続できませんでした。時間をおいて再読み込みしてください。
+        </p>
       </main>
     );
   }
   if (stored === null) notFound();
 
-  const revisions = await listRevisions(key);
+  const history = await listHistory(key, 20);
 
   return (
     <DocumentEditor
@@ -62,8 +77,9 @@ export default async function AdminDocumentPage({
       description={documentDescription(key)}
       manifest={buildManifest(key as DocumentKey, stored.data)}
       initialData={stored.data}
-      initialRevision={stored.revision}
-      initialRevisions={revisions === "db_error" ? [] : revisions}
+      initialSha={stored.sha}
+      initialHistory={typeof history === "string" ? [] : history}
+      historyUrl={historyUrlFor(key)}
       publicPath={PUBLIC_PATH[key] ?? null}
     />
   );
