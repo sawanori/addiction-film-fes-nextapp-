@@ -15454,7 +15454,7 @@
         "tag": "div",
         "attrs": {
           "class": "cols-2",
-          "style": "margin-top:32px"
+          "style": "margin-top:32px;align-items:start"
         },
         "children": [
           "div",
@@ -15465,7 +15465,7 @@
         "path": "6.0.2.0",
         "tag": "div",
         "attrs": {
-          "style": "position:relative;aspect-ratio:16 / 10"
+          "style": "position:relative;aspect-ratio:16 / 9"
         },
         "children": [
           "iframe"
@@ -15487,7 +15487,9 @@
       {
         "path": "6.0.2.1",
         "tag": "div",
-        "attrs": {},
+        "attrs": {
+          "class": "box rise"
+        },
         "children": [
           "h3",
           "p",

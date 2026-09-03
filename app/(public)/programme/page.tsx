@@ -138,8 +138,10 @@ export default async function ProgrammePage() {
 
           {/* 住所と周辺地図。地図は Google マップの埋め込みで、1080px 以下では
               `.cols-2` が1列に落ちて地図の下に住所が回り込む */}
-          <div className="cols-2" style={{ marginTop: "32px" }}>
-            <div style={{ position: "relative", aspectRatio: "16 / 10" }}>
+          {/* alignItems:start で、住所の枠を中身の高さに合わせる
+              （既定の stretch だと地図の高さまで伸びて枠の下が大きく空く） */}
+          <div className="cols-2" style={{ marginTop: "32px", alignItems: "start" }}>
+            <div style={{ position: "relative", aspectRatio: "16 / 9" }}>
               <iframe
                 src={venue.access.map.src}
                 title={venue.access.map.title}
@@ -155,7 +157,9 @@ export default async function ProgrammePage() {
                 }}
               />
             </div>
-            <div>
+            {/* 住所は4行しかないので、地図の高さに対して間延びしないよう
+                このセクションの他の枠と同じ `.box` で囲って面を締める */}
+            <div className="box rise">
               <h3>{venue.access.h}</h3>
               <p style={{ marginTop: "10px" }}>{venue.access.address}</p>
               <p style={{ marginTop: "10px" }}>{renderInline(venue.access.routes)}</p>

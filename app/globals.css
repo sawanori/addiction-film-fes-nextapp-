@@ -252,12 +252,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;}
 .panel--wine .faq dt{color:var(--white);border-top-color:rgba(237,227,212,.28);}
 .panel--wine .faq dd{color:rgba(237,227,212,.72);}
 .panel--wine .section__head .display{color:var(--white);}
-/* トンボ（トリムマーク）。刷版らしさを出す装飾 */
-.panel::before,.panel::after{
-  content:"";position:absolute;width:26px;height:26px;pointer-events:none;opacity:.5;
-}
-.panel::before{left:18px;top:18px;border-left:1px solid var(--bone);border-top:1px solid var(--bone);}
-.panel::after{right:18px;bottom:18px;border-right:1px solid var(--bone);border-bottom:1px solid var(--bone);}
 .panel__dots{
   position:absolute;inset:0;background-image:var(--halftone);background-size:15px 15px;
   opacity:.42;pointer-events:none;
